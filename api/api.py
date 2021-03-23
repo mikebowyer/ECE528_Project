@@ -13,7 +13,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 # Internal
-import features
+from feature import features
 
 # %% SETUP
 BUCKET_NAME = 'ktopolovbucket'
@@ -68,7 +68,7 @@ def share_image(event):
         hour = event['Hour']
         minute = event['Minute']
         second = event['Second']
-        image_bytes = event['ImageBytes']
+        image_base64 = event['ImageBase64']
     except:
         statusCode = 400
         message = 'Missing at least one HTTP request parameter'
@@ -79,13 +79,14 @@ def share_image(event):
     image_name = name + ext
 
     # -- Upload image
+    image_bytes = base64.b64decode(image_base64)
     s3_client = boto3.client('s3')
     response = s3_client.put_object(
             Body=image_bytes,
-            Bucket=BUCKET_NAME,
+            Bucket=bucket_name,
             Key=image_name,
             ACL='public-read')  # enable public read access
-    del event['ImageBytes']  # delete bytes from metadata
+    del event['ImageBase64']  # delete bytes from metadata
 
     if response['ResponseMetadata']['HTTPStatusCode'] != 200:
         statusCode = 500
@@ -120,7 +121,7 @@ def share_image(event):
                 'imageURL': image_url,
                 'imageName': image_name,
                 'jsonName': json_name}
-    return response   
+    return response
 
 # %%
 def get_json_s3(filename, bucket_name):
@@ -196,42 +197,12 @@ def get_image_s3(http_request):
 
     return response
 
-def put_json_s3(event):
-    """
-    Put a JSON formatted file into an S3 bucket
-
-    Parameters
-    ----------
-    event : dict
-        HTTP request body with parameters:
-            bucketName : str
-                Name of S3 bucket to store in
-            itemName : str
-                Name of file when stored in s3
-            content : str
-                JSON file contents
-
-    Returns
-    -------
-    json_string : str
-        JSON-formatted string
-    """
-    item_name = event['itemName']
-    bucket_name = event['bucketName']
-    json_str = json.dumps(event['content'])
-
-    s3_client = boto3.client('s3')
-    response = s3_client.put_object(
-        Body=json_str,
-        Bucket=bucket_name,
-        Key=item_name)
-
 # %% LOCAL FUNCTION TESTS
 # -- Upload with ShareImage
-local_image_file = 'api/logo.png'
-
+local_image_file = 'data/logo.png'
 with open(local_image_file, 'rb') as file:
     image_bytes = file.read()
+    image_base64 = base64.b64encode(image_bytes).decode()
 
 http_body = {
     'Latitude': 40.0,
@@ -242,7 +213,7 @@ http_body = {
     'Hour': 14,
     'Minute': 45,
     'Second': 22,
-    'ImageBytes': image_bytes}
+    'ImageBase64': image_base64}
 
 response = share_image(event=http_body)
 
@@ -263,47 +234,62 @@ plt.figure(0, clear=True)
 plt.imshow(im)
 
 # %% API TESTS
-# NOTE: Parameters like '?name=Kenny&age=22' can be given in 'params'
+# -- Share Image
+local_image_file = 'data/fries.jpg'
+with open(local_image_file, 'rb') as file:
+    image_bytes = file.read()
+    image_base64 = base64.b64encode(image_bytes).decode()
 
-# -- TEST Function
-command = '/test'
+http_body = {
+    'Latitude': 40.0,
+    'Longitude': 41.0,
+    'Day': 24,
+    'Month': 7,
+    'Year': 2021,
+    'Hour': 3,
+    'Minute': 25,
+    'Second': 2,
+    'ImageBase64': image_base64}
+
+command = '/share-image'
 request_url = stage_url + command
-r = requests.get(url=request_url, params={'name': 'Kenny', 'age': 22})
-print(r.text)
+response = requests.put(url=request_url,
+                        data=json.dumps(http_body))  # Must dump to string for put request
+resp_dict = response.json()
 
 # -- Get JSON
-params = {'fileName': 'sample_meta.json',
-          'bucketName': 'ktopolovbucket'}
+params = {'fileName': resp_dict['jsonName'],
+          'bucketName': 'ktopolovbucket'}  # key-value params in URL ?key=value&key1=...
 command = '/get-json-s3'
 request_url = stage_url + command
-r = requests.get(url=request_url, params=params)
-resp_dict = json.loads(r.text)
-print(resp_dict)
+json_response = requests.get(url=request_url, params=params)
+print(json_response.json())
 
 # -- Get Image, decode and show
 params = {'bucketName': BUCKET_NAME,
-          'imageName': 'logo.png'}
+          'imageName': resp_dict['imageName']}
 command = '/get-image-s3'
 request_url = stage_url + command
-r = requests.get(url=request_url, params=params)
-resp_dict = json.loads(r.text)
-image_b64 = (resp_dict['imageBase64'])
+image_response = requests.get(url=request_url, params=params)
+image_dict = image_response.json()
+image_b64 = (image_dict['imageBase64'])
 im = Image.open(io.BytesIO(base64.b64decode(image_b64)))
 plt.figure(1, clear=True)
 plt.imshow(im)
 plt.title('Retrieved and decoded from s3 bucket')
 
-# -- Put JSON Function
-filename = 'api/sample_meta.json'
-with open(filename, 'r') as file:
-    content = json.dumps(json.load(file))
 
-body = {'bucketName': BUCKET_NAME,
-        'itemName': 'bacon.json',
-        'content': content}
-body = json.dumps(body)
+# %% Dictionaries for Testing
+# Use for share_image HTTP body test
+event = {
+    "Latitude": 40,
+    "Longitude": 41,
+    "Day": 25,
+    "Month": 12,
+    "Year": 2021,
+    "Hour": 14,
+    "Minute": 45,
+    "Second": 22,
+    "ImageBase64": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAACAAIDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDyBYo5VEkkaO7jczMoJJPUk0UUVw15P2ster/Nn2NGlT9nH3Vsui7LyP/Z"
+}
 
-command = '/put-json-s3'
-request_url = stage_url + command
-r = requests.put(request_url, data=body)
-# CHECK s3 for file!
