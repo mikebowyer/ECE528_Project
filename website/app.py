@@ -1,7 +1,8 @@
 from flask import Flask
 from flask import render_template
 from flask import request
-creds = ''
+import config
+creds = config.map_key
 
 app = Flask(__name__)
 
@@ -11,9 +12,7 @@ def hello_world():
 
 @app.route('/map')
 def map():
-    fp = open('credentials.txt', 'r')
-    creds = fp.readline()
-    fp.close()
+    global creds
     return render_template('map.html', credentials=creds)
 
 
