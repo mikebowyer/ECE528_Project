@@ -8,7 +8,7 @@
             <p id="p1">
                 Images/Info here.
             </p>
-            <img src={{ url_for('static', filename="dash-cam-example.jpg") }} alt="Dashcam picture">
+            <img id="img1"; src={{ url_for('static', filename="dash-cam-example.jpg") }} alt="Dashcam picture">
         </div>
     </div>
     <div id="map" style="flex-grow: 1;">
@@ -43,11 +43,22 @@
 
         function onMapClick(e) {
             {#alert("You clicked the map at " + e.latlng);#}
-            document.getElementById("p1").innerHTML = "Last Click: " + e.latlng
+            document.getElementById("p1").innerHTML = "Last Click: " + e.latlng;
         }
         function onMarkerClick(e) {
-            {#alert("You clicked the map at ");#}
-            document.getElementById("p1").innerHTML = "Last Click: "
+            var ims = [];
+            var ims = {{ imgs | tojson }};
+
+            if (ims.length > 0) {
+                var rand = Math.round(Math.random()*ims.length);
+                var image = ims[rand];
+                if (image != undefined) {
+                    path = '{{ url_for('static', filename='images/')}}' + image;
+                    console.log(path)
+                    document.getElementById("img1").src = path;
+                }
+            }
+            document.getElementById("p1").innerHTML = "Last Click: ";
         }
 
         map.on('click', onMapClick);
