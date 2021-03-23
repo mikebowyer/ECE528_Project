@@ -30,7 +30,6 @@ def create_movie_table(dynamodb=None):
                 'AttributeName': 'title',
                 'AttributeType': 'S'
             },
-
         ],
         ProvisionedThroughput={
             'ReadCapacityUnits': 10,
