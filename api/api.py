@@ -3,6 +3,7 @@
 API to interface with data storage
 """
 # %% IMPORTS
+# External
 import boto3
 import json
 import base64
@@ -11,11 +12,117 @@ import requests
 from PIL import Image
 import matplotlib.pyplot as plt
 
+# Internal
+import features
+
 # %% SETUP
 BUCKET_NAME = 'ktopolovbucket'
 stage_url = 'https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev'
 
 # %% LOCAL FUNCTIONS
+def share_image(event):
+    """
+    Put an image into S3, and stickmetadata into DynamoDB
+
+    Parameters
+    ----------
+    event : dict
+        HTTP PUT request body, containing:
+            'Latitude': decimal
+                Latitude in degrees
+            'Longitude': decimal
+                Longitude in degrees
+            'Day': integer
+                Day of the month
+            'Month': integer
+                Month of the year
+            'Year': integer
+                Year
+            'Hour': integer
+                Hour of the day, 0 <= 23
+            'Minute': integer
+                Minute value 0 <= 59
+            'Second': integer
+                Second value 0 <= 59
+            'ImageBase64': str
+                Image encoded as a base64 string
+
+    Returns
+    -------
+    response : dict
+        Response dictionary containing:
+            'statusCode': integer
+                200 - success
+                400 - something not provided properly
+            'imageURL': str
+                URL of image in s3 bucket
+    """
+    statusCode = 200  # default to success
+    message = 'Success'
+
+    bucket_name = 'ktopolovbucket'
+    try:
+        day = event['Day']
+        month = event['Month']
+        year = event['Year']
+        hour = event['Hour']
+        minute = event['Minute']
+        second = event['Second']
+        image_bytes = event['ImageBytes']
+    except:
+        statusCode = 400
+        message = 'Missing at least one HTTP request parameter'
+
+    # d for data, t for time
+    ext = '.jpg'
+    name = 'd{}-{}-{}-t-{}-{}-{}'.format(day, month, year, hour, minute, second)
+    image_name = name + ext
+
+    # -- Upload image
+    s3_client = boto3.client('s3')
+    response = s3_client.put_object(
+            Body=image_bytes,
+            Bucket=BUCKET_NAME,
+            Key=image_name,
+            ACL='public-read')  # enable public read access
+    del event['ImageBytes']  # delete bytes from metadata
+
+    if response['ResponseMetadata']['HTTPStatusCode'] != 200:
+        statusCode = 500
+        message = 'Unable to upload image to S3'
+
+    # -- Get URL
+    image_url = 'https://{}.s3.amazonaws.com/{}'.format(bucket_name,
+                                                        image_name)
+    event['ImageURL'] = image_url
+
+    # -- Get labels
+    labels = features.get_features(bucket_name=bucket_name,
+                                   image_name=image_name,
+                                   max_labels=5)
+    event['Labels'] = labels
+
+    # -- Replace this with storage into DynamoDB
+    json_str = json.dumps(event)
+    ext = '.json'
+    json_name = name + ext
+    response = s3_client.put_object(
+        Body=json_str,
+        Bucket=bucket_name,
+        Key=json_name)
+
+    if response['ResponseMetadata']['HTTPStatusCode'] != 200:
+        statusCode = 500
+        message = 'Unable to upload JSON to S3'
+
+    response = {'statusCode': statusCode,
+                'message': message,
+                'imageURL': image_url,
+                'imageName': image_name,
+                'jsonName': json_name}
+    return response   
+
+# %%
 def get_json_s3(filename, bucket_name):
     """
     Retrieve a JSON formatted file from an S3 bucket
@@ -120,33 +227,40 @@ def put_json_s3(event):
         Key=item_name)
 
 # %% LOCAL FUNCTION TESTS
-# FIXME-KT: Add try/catch to return more useful responses if item does not exist, etc.
+# -- Upload with ShareImage
+local_image_file = 'api/logo.png'
 
-# -- Get JSON
-filename = 'sample_meta.json'  # MAKE SURE THIS FILE IS IN S3 BUCKET
-jsons3 = get_json_s3(filename=filename, bucket_name=BUCKET_NAME)
+with open(local_image_file, 'rb') as file:
+    image_bytes = file.read()
+
+http_body = {
+    'Latitude': 40.0,
+    'Longitude': 41.0,
+    'Day': 25,
+    'Month': 12,
+    'Year': 2021,
+    'Hour': 14,
+    'Minute': 45,
+    'Second': 22,
+    'ImageBytes': image_bytes}
+
+response = share_image(event=http_body)
+
+# -- Get JSON and read
+jsons3 = get_json_s3(filename=response['jsonName'],
+                     bucket_name=BUCKET_NAME)
 json_str = jsons3['Body'].read().decode('utf-8')
 json_dict = json.loads(json_str)
 print(json_dict)
 
-# -- Get Image
+# -- Get Image and show
 params = {'bucketName': BUCKET_NAME,
-          'imageName': 'logo.png'}
+          'imageName': response['imageName']}
 resp_dict = get_image_s3(http_request=params)
 image_b64 = (resp_dict['imageBase64'])
 im = Image.open(io.BytesIO(base64.b64decode(image_b64)))
 plt.figure(0, clear=True)
 plt.imshow(im)
-
-# -- Put JSON
-local_filename = 'api/sample_meta.json'
-with open(local_filename, 'r') as file:
-    content = json.dumps(json.load(file))
-
-body = {'bucketName': BUCKET_NAME,
-        'itemName': 'hamsandwich.json',
-        'content': content}
-put_json_s3(event=body)
 
 # %% API TESTS
 # NOTE: Parameters like '?name=Kenny&age=22' can be given in 'params'
