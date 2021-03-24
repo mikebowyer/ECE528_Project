@@ -20,6 +20,48 @@ BUCKET_NAME = 'ktopolovbucket'
 stage_url = 'https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev'
 
 # %% LOCAL FUNCTIONS
+def query_database(req_label, n_max):
+    return ['URL1', 'URL2']
+
+def grab_images(event):
+    """
+    Get image URLs from database
+
+    Parameters
+    ----------
+    event : dict
+        HTTP GET request with key-valu pairs:
+            'ReqLabel': str
+                Required label in image; must be supported by Rekognition
+            'MaxNumImages': str
+                Maximum number of images to return
+
+    Returns
+    -------
+    response : dict
+        Response dictionary containing:
+            'statusCode': integer
+                200 - success
+                400 - something not provided properly
+            'message': str
+                Message describing status code
+            'imageURLs': list of str
+                List of image URLs found
+    """
+    n_max = event['MaxNumImages']
+    req_label = event['ReqLabel']
+
+    # Search DynamoDB for these images & return the URLs
+    imageURLs = query_database(req_label=req_label, n_max=n_max)
+
+    # IN PROGRESS
+    response = {'statusCode': 200,
+                'message': 'Requested {} images w/ a {} in it'.format(n_max,
+                                                                      req_label),
+                'imageURLs': json.dumps(imageURLs)}
+    return response
+    
+
 def share_image(event):
     """
     Put an image into S3, and stickmetadata into DynamoDB
@@ -54,8 +96,14 @@ def share_image(event):
             'statusCode': integer
                 200 - success
                 400 - something not provided properly
+            'message': str
+                Message describing status code
             'imageURL': str
                 URL of image in s3 bucket
+            'imageName': str
+                Name of image within bucket
+            'jsonName': str
+                Name of JSON within bucket
     """
     statusCode = 200  # default to success
     message = 'Success'
@@ -123,7 +171,6 @@ def share_image(event):
                 'jsonName': json_name}
     return response
 
-# %%
 def get_json_s3(filename, bucket_name):
     """
     Retrieve a JSON formatted file from an S3 bucket
@@ -233,6 +280,12 @@ im = Image.open(io.BytesIO(base64.b64decode(image_b64)))
 plt.figure(0, clear=True)
 plt.imshow(im)
 
+# -- Get Image URLs
+http_body = {'ReqLabel': 'Dog',
+             'MaxNumImages': 5}
+response = grab_images(event=http_body)
+print(response)
+
 # %% API TESTS
 # -- Share Image
 local_image_file = 'data/fries.jpg'
@@ -278,6 +331,14 @@ plt.figure(1, clear=True)
 plt.imshow(im)
 plt.title('Retrieved and decoded from s3 bucket')
 
+# -- Query images
+params = {'MaxNumImages': 3,
+          'ReqLabel': 'Cat'}
+command = '/grab-images'
+request_url = stage_url + command
+image_query_response = requests.get(url=request_url, params=params)
+
+print(image_query_response.json())
 
 # %% Dictionaries for Testing
 # Use for share_image HTTP body test
