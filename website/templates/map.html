@@ -1,14 +1,20 @@
 {% extends "layout.html" %}
 {% block content %}
-<h1>Test</h1>
-<p>This has the map.</p>
-<div class="container" style="display: flex; height: 750px;">
-    <div style="width: 35%; text-align: center">
-        <div style="width: 75%; text-align: center">
-            <p id="p1">
-                Images/Info here.
-            </p>
-            <img id="img1"; src={{ url_for('static', filename="dash-cam-example.jpg") }} alt="Dashcam picture">
+
+<div class="container">
+    <div class="left_container">
+        <div class="image_and_data">
+            <h1>Image Data</h1>
+            <div class="image_container">
+                <img class="resize"; id="img1"; src="/static/images/dash-cam-example.jpg"; alt="Dashcam picture">
+            </div>
+            <p>The information below was extracted from the AWS Rekognition service.</p>
+            <ul>
+                <li><b>Latitude:</b> <samp id="lat_id"></samp></li>
+                <li><b>Longitude:</b> <samp id="long_id"></samp></li>
+                <li><b>Speed:</b> <samp id="speed_id"></samp></li>
+                <li><b>Objects Detected:</b> <samp id="obj_id"></samp></li>
+            </ul>
         </div>
     </div>
     <div id="map" style="flex-grow: 1;">
@@ -43,7 +49,7 @@
 
         function onMapClick(e) {
             {#alert("You clicked the map at " + e.latlng);#}
-            document.getElementById("p1").innerHTML = "Last Click: " + e.latlng;
+            {#document.getElementById("p1").innerHTML = "Last Click: " + e.latlng;#}
         }
         function onMarkerClick(e) {
             var ims = [];
@@ -58,7 +64,9 @@
                     document.getElementById("img1").src = path;
                 }
             }
-            document.getElementById("p1").innerHTML = "Last Click: ";
+            document.getElementById("lat_id").innerHTML = e.latlng.lat;
+            document.getElementById("long_id").innerHTML = e.latlng.lng;
+            document.getElementById("speed_id").innerHTML = Math.random()*100;
         }
 
         map.on('click', onMapClick);
