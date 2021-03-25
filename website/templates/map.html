@@ -5,6 +5,7 @@
     <div class="left_container">
         <div class="image_and_data">
             <h1>Image Data</h1>
+            <p id="zoom">Boundaries:</p>
             <div class="image_container">
                 <img class="resize"; id="img1"; src="/static/images/dash-cam-example.jpg"; alt="Dashcam picture">
             </div>
@@ -39,6 +40,7 @@
         }).addTo(map);
 
         updateMarkers({{ markers }})
+        updateBoundaries()
 
         function updateMarkers(markers) {
             for (m = 0; m < markers.length; m++) {
@@ -74,6 +76,16 @@
                 markerList[i].remove();
             }
         }
+        function updateBoundaries(e) {
+            var bounds = map.getBounds();
+            console.log(bounds);
+            sw_lat = Number.parseFloat(bounds.getSouthWest().lat).toFixed(4);
+            sw_lng = Number.parseFloat(bounds.getSouthWest().lng).toFixed(4);
+            ne_lat = Number.parseFloat(bounds.getNorthEast().lat).toFixed(4);
+            ne_lng = Number.parseFloat(bounds.getNorthEast().lng).toFixed(4);
+            console.log(sw_lat);
+            $("#zoom").text("Boundaries: [" + sw_lat + ", " + sw_lng + "] to [" + ne_lat + ", " + ne_lng + "]");
+        }
         function onZoomEnd(e) {
             // TODO update markers from marker list from DB
             console.log('Here');
@@ -81,6 +93,7 @@
             v2 = [42.3223 + 0.2*Math.random() - 0.1, -83.1763 + 0.2*Math.random() - 0.1];
             v3 = [42.3223 + 0.2*Math.random() - 0.1, -83.1763 + 0.2*Math.random() - 0.1];
             updateMarkers([v1, v2, v3]);
+            updateBoundaries()
             {#alert("You clicked the map at " + e.latlng);#}
             {#document.getElementById("p1").innerHTML = "Last Click: " + e.latlng;#}
         }
