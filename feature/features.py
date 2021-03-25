@@ -6,7 +6,7 @@ Provides functionality fr feature extraction from image data stored in S3
 import boto3
 
 # %% Functions
-def get_features(image_metas, max_labels=10):
+def get_features(bucket_name, image_name, max_labels=5):
     """
     Extract important features from images located in the provided S3 paths
 
@@ -33,35 +33,26 @@ def get_features(image_metas, max_labels=10):
     """
     # Begin Rekognition client
     rekog_client = boto3.client('rekognition')
-
-    for meta in image_metas:
-        S3_Object = {'Bucket': meta['bucket'],
-                     'Name': meta['filename']}
-        response = rekog_client.detect_labels(Image={'S3Object': S3_Object},
-                                              MaxLabels=max_labels)
-        meta['labels'] = response['Labels']
-
-    return image_metas
+    S3_Object = {'Bucket': bucket_name,
+                 'Name': image_name}
+    response = rekog_client.detect_labels(Image={'S3Object': S3_Object},
+                                          MaxLabels=max_labels)
+    labels = response['Labels']
+    return labels
 
 # %% Main script
 if __name__ == '__main__':
     # Create a metadata dictionary for each image. This all should
     # come from our DynamoDB database
-    bucket = 'ktopolovbucket'
-
-    meta1 = {'bucket': bucket,
-             'filename': 'logo.png',
-             'time': '13/45/02',  # hour/minute/second
-             'date': '01/09/2021',  # MM/DD/YYYY
-             'latitude': 40.1,
-             'longitude': 22.7,
-             'altitude': 1523.2}
-
-    # Store in single list
-    image_metas = [meta1]
+    bucket_name = 'ktopolovbucket'
+    image_name = 'd25-12-2021-t-14-45-22.jpg'
+    max_labels = 5
 
     # Extract features for each, overwriting the image_metas
     print('Begin extracting features')
-    image_metas = get_features(image_metas)
+    labels = get_features(bucket_name=bucket_name,
+                               image_name=image_name,
+                               max_labels=max_labels)
     print('Done extracting features')
+    print(labels)
     
