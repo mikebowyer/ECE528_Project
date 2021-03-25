@@ -31,3 +31,8 @@ class DashcamTableManager():
             print("The DashCam Images table could not be found")
             returnVal =False
         return returnVal
+
+    def delete_table(self,):
+        print("Deleting table")
+        self.table.delete()
+        print("Delete sucessful")

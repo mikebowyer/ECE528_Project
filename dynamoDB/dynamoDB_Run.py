@@ -102,6 +102,9 @@ if __name__ == '__main__':
             val = input("Enter your value: ")
             if int(val) == 0:
                 tableManager.check_if_table_exists()
+            elif int(val)==1:
+                tableManager.delete_table()
+
     except KeyboardInterrupt:
         print('interrupted!')
     # list_tables()
