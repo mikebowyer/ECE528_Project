@@ -1,6 +1,9 @@
-from flask import (Flask, render_template, request, url_for)
-import os, os.path
+from flask import (Flask, render_template, jsonify, request, url_for)
+import os
+import os.path
+import db
 import config
+
 creds = config.map_key
 
 app = Flask(__name__)
@@ -13,7 +16,13 @@ def hello_world():
 def map():
     global creds
     images = os.listdir(os.path.join(app.static_folder, "images"))
-    return render_template('map.html', credentials=creds, imgs=images)
+    markers = db.get_items()
+
+    return render_template('map.html', credentials=creds, imgs=images, markers=markers)
+
+@app.route('/get-items')
+def get_items():
+    return str(db.get_items())
 
 
 if __name__ == '__main__':

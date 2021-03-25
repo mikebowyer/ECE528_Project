@@ -18,16 +18,17 @@
         </div>
     </div>
     <div id="map" style="flex-grow: 1;">
-        <script type="text/javascript">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script type = "text/javascript">
         // The first parameter are the coordinates of the center of the map
         // The second parameter is the zoom level
-        var map = L.map('map').setView([42.3223, -83.1763], 11);
+        var map = L.map('map').setView([42.3223, -83.1763], 11); // set to Dearborn
         var creds = '{{ credentials }}';
+        var markerList = [];
 
-        // {s}, {z}, {x} and {y} are placeholders for map tiles
+        // {z}, {x} and {y} are placeholders for map tiles
         // {x} and {y} are the x/y of where you are on the map
         // {z} is the zoom level
-        // {s} is the subdomain of cartodb
         layer = L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
             attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
             maxZoom: 18,
@@ -37,20 +38,19 @@
             accessToken: creds
         }).addTo(map);
 
-        var marker = L.marker([42.3223, -83.1763]).addTo(map);
+        updateMarkers({{ markers }})
 
-        marker.bindPopup("<b>Hello world!</b><br>I am a popup.").on('click', onMarkerClick);
-        var popup = L.popup()
-            .setLatLng([42.3223, -83.1763])
-            .setContent("I am a standalone popup.")
-            .openOn(map);
-
-        marker.openPopup()
-
-        function onMapClick(e) {
-            {#alert("You clicked the map at " + e.latlng);#}
-            {#document.getElementById("p1").innerHTML = "Last Click: " + e.latlng;#}
+        function updateMarkers(markers) {
+            for (m = 0; m < markers.length; m++) {
+                if (markers[m]) {
+                    var val = markers[m];
+                    console.log(val)
+                    markerList[m] = L.marker(val).addTo(map).bindPopup("<b>Hello world!</b><br>I am a popup.").on('click', onMarkerClick);
+                }
+            }
+            return;
         }
+
         function onMarkerClick(e) {
             var ims = [];
             var ims = {{ imgs | tojson }};
@@ -64,12 +64,36 @@
                     document.getElementById("img1").src = path;
                 }
             }
-            document.getElementById("lat_id").innerHTML = e.latlng.lat;
-            document.getElementById("long_id").innerHTML = e.latlng.lng;
-            document.getElementById("speed_id").innerHTML = Math.random()*100;
+            $("#lat_id").text(e.latlng.lat);
+            $("#long_id").text(e.latlng.lng);
+            $("#speed_id").text(Math.random()*100);
         }
-
-        map.on('click', onMapClick);
+        function onZoomStart(e) {
+            // TODO replace with check if in list and update list
+            for (i = 0; i < markerList.length; i++) {
+                markerList[i].remove();
+            }
+        }
+        function onZoomEnd(e) {
+            // TODO update markers from marker list from DB
+            console.log('Here');
+            v1 = [42.3223 + 0.2*Math.random() - 0.1, -83.1763 + 0.2*Math.random() - 0.1];
+            v2 = [42.3223 + 0.2*Math.random() - 0.1, -83.1763 + 0.2*Math.random() - 0.1];
+            v3 = [42.3223 + 0.2*Math.random() - 0.1, -83.1763 + 0.2*Math.random() - 0.1];
+            updateMarkers([v1, v2, v3]);
+            {#alert("You clicked the map at " + e.latlng);#}
+            {#document.getElementById("p1").innerHTML = "Last Click: " + e.latlng;#}
+        }
+        {#function onMapClick(e) {#}
+            {#alert("You clicked the map at " + e.latlng);#}
+            {#document.getElementById("p1").innerHTML = "Last Click: " + e.latlng;#}
+        {#var popup = L.popup()#}
+        {#    .setLatLng([42.3223, -83.1763])#}
+        {#    .setContent("I am a standalone popup.")#}
+        {#    .openOn(map);#}
+        {#map.on('click', onMapClick);#}
+        map.on('zoomstart', onZoomStart)
+        map.on('zoomend', onZoomEnd)
         map.addLayer(layer)
 
         </script>
