@@ -8,33 +8,7 @@ from boto3.dynamodb.conditions import Key
 import time
 from dashcam_table_manager import DashcamTableManager
 
-# def list_tables(dynamodb=None):
-#     if not dynamodb:
-#         dynamodb = boto3.resource('dynamodb', endpoint_url="http://localhost:8000")
-# 
-#     print(list(dynamodb.tables.all()))
-# 
-# def check_if_table_exists(dynamodb=None):
-#     if not dynamodb:
-#         dynamodb = boto3.resource('dynamodb', endpoint_url="http://localhost:8000")
-# 
-#     table = dynamodb.Table(databasename)
-#     returnVal = False
-#     try:
-#         creationTime = table.creation_date_time
-#         logger.info("The DashCam Images table has been found, and was originally created on {}".format(creationTime))
-#         returnVal = True
-#     except:
-#         logger.info("The DashCam Images table could not be found")
-#         returnVal =False
-#     return returnVal
-# 
-# def delete_table(tableName, dynamodb=None):
-#     if not dynamodb:
-#         dynamodb = boto3.resource('dynamodb', endpoint_url="http://localhost:8000")
-# 
-#     table = dynamodb.Table(tableName)
-#     table.delete()
+#
 # 
 # def create_dashcam_img_table(dynamodb=None):
 #     if not dynamodb:
@@ -104,6 +78,9 @@ if __name__ == '__main__':
                 tableManager.check_if_table_exists()
             elif int(val)==1:
                 tableManager.delete_table()
+            elif int(val)==2:
+                tableManager.list_tables()
+
 
     except KeyboardInterrupt:
         print('interrupted!')

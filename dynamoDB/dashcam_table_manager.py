@@ -36,3 +36,9 @@ class DashcamTableManager():
         print("Deleting table")
         self.table.delete()
         print("Delete sucessful")
+
+    def list_tables(self):
+        tables = list(self.dynamodb.tables.all())
+        print("Tables which are found in this DynamoDB instance: ")
+        for table in tables:
+            print("\t - {}".format(table))
