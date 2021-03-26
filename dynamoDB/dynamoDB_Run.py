@@ -1,11 +1,4 @@
-from decimal import Decimal
-import json
-import boto3
 import logging
-from pprint import pprint
-from botocore.exceptions import ClientError
-from boto3.dynamodb.conditions import Key
-import time
 from dashcam_table_manager import DashcamTableManager
 
 # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(name)s %(levelname)s:%(message)s')
@@ -35,6 +28,9 @@ if __name__ == '__main__':
             elif int(val)==6:
                 result = tableManager.update_img(1616718877, '122e0e31-30d9-4563-b489-8a105ec846f0', lat=32.389459)#detectedLabel='Sloth')
                 print (result)
+            elif int(val)==7:
+                response = tableManager.delete_img(1616718956, '189e363c-7a50-4ed1-ad9d-1bb96409733f')
+                print(response)
 
 
 

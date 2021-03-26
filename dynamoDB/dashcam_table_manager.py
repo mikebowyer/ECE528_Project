@@ -170,3 +170,20 @@ class DashcamTableManager():
             print(response)
             returnVal=True
         return returnVal
+
+    def delete_img(self, time, uid):
+        try:
+            response = self.table.delete_item(
+                Key={
+                    'time': time,
+                    'image_uid': uid
+                },
+            )
+            # TODO make sure this really deletes something
+        except ClientError as e:
+            if e.response['Error']['Code'] == "ConditionalCheckFailedException":
+                print(e.response['Error']['Message'])
+            else:
+                raise
+        else:
+            return response
