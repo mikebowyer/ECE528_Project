@@ -11,6 +11,8 @@ import io
 import requests
 from PIL import Image
 import matplotlib.pyplot as plt
+from datetime import datetime
+import numpy as np
 
 # Internal
 from feature import features
@@ -19,8 +21,17 @@ from feature import features
 BUCKET_NAME = 'ktopolovbucket'
 stage_url = 'https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev'
 
+# Local files
+local_image_file = 'data/dashcams-2048px-20.jpg'
+
+is_test_api = True
+is_test_local = False
+
 # %% LOCAL FUNCTIONS
 def query_database(req_label, n_max):
+    """
+    Placeholder function
+    """
     return ['URL1', 'URL2']
 
 def grab_images(event):
@@ -74,18 +85,9 @@ def share_image(event):
                 Latitude in degrees
             'Longitude': decimal
                 Longitude in degrees
-            'Day': integer
-                Day of the month
-            'Month': integer
-                Month of the year
-            'Year': integer
-                Year
-            'Hour': integer
-                Hour of the day, 0 <= 23
-            'Minute': integer
-                Minute value 0 <= 59
-            'Second': integer
-                Second value 0 <= 59
+            'DateTimeStr': str
+                data time string in format:
+                    yyyy-mm-dd hh:mm:ss.mmmmmm
             'ImageBase64': str
                 Image encoded as a base64 string
 
@@ -110,12 +112,9 @@ def share_image(event):
 
     bucket_name = 'ktopolovbucket'
     try:
-        day = event['Day']
-        month = event['Month']
-        year = event['Year']
-        hour = event['Hour']
-        minute = event['Minute']
-        second = event['Second']
+        lat = event['Latitude']
+        lon = event['Longitude']
+        date_time_string = event['DateTimeStr']
         image_base64 = event['ImageBase64']
     except:
         statusCode = 400
@@ -123,7 +122,7 @@ def share_image(event):
 
     # d for data, t for time
     ext = '.jpg'
-    name = 'd{}-{}-{}-t-{}-{}-{}'.format(day, month, year, hour, minute, second)
+    name = date_time_string # current date and time
     image_name = name + ext
 
     # -- Upload image
@@ -149,6 +148,11 @@ def share_image(event):
     labels = features.get_features(bucket_name=bucket_name,
                                    image_name=image_name,
                                    max_labels=5)
+    
+    for label in labels:  # don't need this key
+        del label['Parents']
+
+    # Bounding boxes should be under labels['Instances']
     event['Labels'] = labels
 
     # -- Replace this with storage into DynamoDB
@@ -245,112 +249,128 @@ def get_image_s3(http_request):
     return response
 
 # %% LOCAL FUNCTION TESTS
-# -- Upload with ShareImage
-local_image_file = 'data/logo.png'
-with open(local_image_file, 'rb') as file:
-    image_bytes = file.read()
-    image_base64 = base64.b64encode(image_bytes).decode()
+if is_test_local:
+    # -- Upload with ShareImage
+    print('===== ShareImage Local TEST =====')
+    with open(local_image_file, 'rb') as file:
+        image_bytes = file.read()
+        image_base64 = base64.b64encode(image_bytes).decode()
 
-http_body = {
-    'Latitude': 40.0,
-    'Longitude': 41.0,
-    'Day': 25,
-    'Month': 12,
-    'Year': 2021,
-    'Hour': 14,
-    'Minute': 45,
-    'Second': 22,
-    'ImageBase64': image_base64}
-
-response = share_image(event=http_body)
-
-# -- Get JSON and read
-jsons3 = get_json_s3(filename=response['jsonName'],
-                     bucket_name=BUCKET_NAME)
-json_str = jsons3['Body'].read().decode('utf-8')
-json_dict = json.loads(json_str)
-print(json_dict)
-
-# -- Get Image and show
-params = {'bucketName': BUCKET_NAME,
-          'imageName': response['imageName']}
-resp_dict = get_image_s3(http_request=params)
-image_b64 = (resp_dict['imageBase64'])
-im = Image.open(io.BytesIO(base64.b64decode(image_b64)))
-plt.figure(0, clear=True)
-plt.imshow(im)
-
-# -- Get Image URLs
-http_body = {'ReqLabel': 'Dog',
-             'MaxNumImages': 5}
-response = grab_images(event=http_body)
-print(response)
+    http_body = {
+        'Latitude': 40.0,
+        'Longitude': 41.0,
+        # 'DateTimeStr': str(datetime.now()),
+        'DateTimeStr': '2021-03-26 14:00:47.935047',
+        'ImageBase64': image_base64}
+    
+    response = share_image(event=http_body)
+    print('\tMessage: {}'.format(response['message']))
+    
+    # -- Get JSON that was just uploaded and read
+    print('===== GetJson Local TEST =====')
+    jsons3 = get_json_s3(filename=response['jsonName'],
+                         bucket_name=BUCKET_NAME)
+    json_str = jsons3['Body'].read().decode('utf-8')
+    json_dict = json.loads(json_str)
+    print(json_dict['ImageURL'])
+    
+    # -- Get Image and show
+    print('===== GetImage Local TEST =====')
+    params = {'bucketName': BUCKET_NAME,
+              'imageName': response['imageName']}
+    resp_dict = get_image_s3(http_request=params)
+    image_b64 = (resp_dict['imageBase64'])
+    im = Image.open(io.BytesIO(base64.b64decode(image_b64)))
+    plt.figure(0, clear=True)
+    plt.imshow(im)
+    plt.title(resp_dict['imageName'])
+    
+    # -- Get Image URLs
+    http_body = {'ReqLabel': 'Dog',
+                 'MaxNumImages': 5}
+    response = grab_images(event=http_body)
+    print(response)
 
 # %% API TESTS
-# -- Share Image
-local_image_file = 'data/fries.jpg'
-with open(local_image_file, 'rb') as file:
-    image_bytes = file.read()
-    image_base64 = base64.b64encode(image_bytes).decode()
+if is_test_api:
+    # -- Share Image
+    print('===== ShareImage API TEST =====')
+    with open(local_image_file, 'rb') as file:
+        image_bytes = file.read()
+        image_base64 = base64.b64encode(image_bytes).decode()
 
-http_body = {
-    'Latitude': 40.0,
-    'Longitude': 41.0,
-    'Day': 24,
-    'Month': 7,
-    'Year': 2021,
-    'Hour': 3,
-    'Minute': 25,
-    'Second': 2,
-    'ImageBase64': image_base64}
+    http_body = {
+        'Latitude': 40.0,
+        'Longitude': 41.0,
+        
+        # Should get current data/time, but for now
+        # just give same name every time
+        # 'DateTimeStr': str(datetime.now()),
+        'DateTimeStr': '2021-03-26 14:00:47.935047',
+        'ImageBase64': image_base64}
 
-command = '/share-image'
-request_url = stage_url + command
-response = requests.put(url=request_url,
-                        data=json.dumps(http_body))  # Must dump to string for put request
-resp_dict = response.json()
+    command = '/share-image'
+    request_url = stage_url + command
+    response = requests.put(url=request_url,
+                            data=json.dumps(http_body))  # Must dump to string for put request
+    resp_dict = response.json()
+    
+    # -- Get JSON
+    print('===== GetJson API TEST =====')
+    params = {'fileName': resp_dict['jsonName'],
+              'bucketName': 'ktopolovbucket'}  # key-value params in URL ?key=value&key1=...
+    command = '/get-json-s3'
+    request_url = stage_url + command
+    json_response = requests.get(url=request_url, params=params)
+    json_data = json_response.json()
+    print('\tStatus Code: {}'.format(json_data['statusCode']))
+    
+    # -- Get Image, decode and show
+    print('===== GetImage API TEST =====')
+    params = {'bucketName': BUCKET_NAME,
+              'imageName': resp_dict['imageName']}
+    command = '/get-image-s3'
+    request_url = stage_url + command
+    image_response = requests.get(url=request_url, params=params)
+    image_dict = image_response.json()
+    image_b64 = (image_dict['imageBase64'])
+    im = Image.open(io.BytesIO(base64.b64decode(image_b64)))
+    plt.figure(1, clear=True)
+    plt.imshow(im)
+    plt.title('Retrieved and decoded from s3 bucket')
 
-# -- Get JSON
-params = {'fileName': resp_dict['jsonName'],
-          'bucketName': 'ktopolovbucket'}  # key-value params in URL ?key=value&key1=...
-command = '/get-json-s3'
-request_url = stage_url + command
-json_response = requests.get(url=request_url, params=params)
-print(json_response.json())
+    # -- Query images
+    params = {'MaxNumImages': 3,
+              'ReqLabel': 'Cat'}
+    command = '/grab-images'
+    request_url = stage_url + command
+    image_query_response = requests.get(url=request_url, params=params)
+    
+    print(image_query_response.json())
 
-# -- Get Image, decode and show
-params = {'bucketName': BUCKET_NAME,
-          'imageName': resp_dict['imageName']}
-command = '/get-image-s3'
-request_url = stage_url + command
-image_response = requests.get(url=request_url, params=params)
-image_dict = image_response.json()
-image_b64 = (image_dict['imageBase64'])
-im = Image.open(io.BytesIO(base64.b64decode(image_b64)))
-plt.figure(1, clear=True)
-plt.imshow(im)
-plt.title('Retrieved and decoded from s3 bucket')
+# %% Plot Bounding Box
+plt.figure(2, clear=True)
+img_array = np.array(im)
+plt.imshow(img_array)
+plt.title('Retrieved Image w/ Bounding Boxes')
 
-# -- Query images
-params = {'MaxNumImages': 3,
-          'ReqLabel': 'Cat'}
-command = '/grab-images'
-request_url = stage_url + command
-image_query_response = requests.get(url=request_url, params=params)
+json_data = json_response.json()
+labels = json_data['body']['Labels']
+n_row, n_col, _ = img_array.shape
+colors = [np.random.rand(3,) for _ in labels]
 
-print(image_query_response.json())
+for ii, label in enumerate(labels):
+    print('Label found: {}'.format(label['Name']))
+    instances = label['Instances']
+    for instance in instances:
+        bounding_box = instance['BoundingBox']
+        width = bounding_box['Width']
+        height = bounding_box['Height']
+        left = bounding_box['Left']
+        top = bounding_box['Top']
 
-# %% Dictionaries for Testing
-# Use for share_image HTTP body test
-event = {
-    "Latitude": 40,
-    "Longitude": 41,
-    "Day": 25,
-    "Month": 12,
-    "Year": 2021,
-    "Hour": 14,
-    "Minute": 45,
-    "Second": 22,
-    "ImageBase64": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAACAAIDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDyBYo5VEkkaO7jczMoJJPUk0UUVw15P2ster/Nn2NGlT9nH3Vsui7LyP/Z"
-}
+        row = n_col * (left + np.array([0, 0, width, width, 0]))
+        col = n_row * (top + np.array([0, height, height, 0, 0]))
 
+        plt.plot(row, col, color=colors[ii])
+        
