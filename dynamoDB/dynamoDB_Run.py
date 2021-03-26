@@ -46,6 +46,8 @@ if __name__ == '__main__':
                 tableManager.delete_table()
             elif int(val)==2:
                 tableManager.list_tables()
+            elif int(val)==3:
+                put_sucess = tableManager.put_new_img(42.389459,-83.386596,"http://imgSource.com", "caterpillar")
 
 
     except KeyboardInterrupt:

@@ -1,6 +1,7 @@
 from decimal import Decimal
 import json
 import boto3
+import time, datetime, uuid
 import logging
 from pprint import pprint
 from botocore.exceptions import ClientError
@@ -45,26 +46,28 @@ class DashcamTableManager():
             print("\t - {}".format(table))
 
     def create_dashcam_img_table(self):
+        print("Creating new table with title: {}".format(self.tableName))
+
         self.table = self.dynamodb.create_table(
             TableName=self.tableName,
             KeySchema=[
                 {
-                    'AttributeName': 'image_uid',
+                    'AttributeName': 'time',
                     'KeyType': 'HASH'  # Partition key
                 },
                 {
-                    'AttributeName': 'time',
+                    'AttributeName': 'image_uid',
                     'KeyType': 'RANGE'  # Sort key
                 }
             ],
             AttributeDefinitions=[
                 {
-                    'AttributeName': 'image_uid',
+                    'AttributeName': 'time',
                     'AttributeType': 'N'
                 },
                 {
-                    'AttributeName': 'time',
-                    'AttributeType': 'N'
+                    'AttributeName': 'image_uid',
+                    'AttributeType': 'S'
                 }
             ],
             ProvisionedThroughput={
@@ -72,3 +75,35 @@ class DashcamTableManager():
                 'WriteCapacityUnits': 10
             }
         )
+
+    def put_new_img(self, lat, long, imgSrc, detectedLabel):
+        print("Adding new entry with lat: {} \tlong:{} \tImage Source: {}".format(lat, long, imgSrc))
+
+        #Preprocess & Generate new entry inputs
+        epochTime = int(time.time())
+        uid = str(uuid.uuid4())
+        humanReadableTime = str(datetime.datetime.now())
+        latitude = str(lat)
+        longitude = str(long)
+        returnVal = False
+        try:
+            response = self.table.put_item(
+               Item={
+                    'time': epochTime,
+                    'image_uid': uid,
+                    'info': {
+                        'human_readable_time': humanReadableTime,
+                        'latitude': latitude,
+                        'longitude': longitude,
+                        'image_source': imgSrc
+                    }
+                }
+            )
+            returnVal = True
+        except:
+            returnVal = False
+
+        print("Putting new item into table response:")
+        print(response)
+
+        return returnVal
