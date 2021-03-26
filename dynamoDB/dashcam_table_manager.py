@@ -107,3 +107,46 @@ class DashcamTableManager():
         print(response)
 
         return returnVal
+
+    def get_img(self, time, uid=None):
+        print("Getting image with time: {} and uid: {}".format(time, uid))
+        returnItem = None
+        try:
+            response = self.table.get_item(Key={'time': Decimal(time), 'image_uid': uid})
+            print("Get item Response:")
+            if "Item" in response:
+                 print(response["Item"])
+                 returnItem = response["Item"]
+            elif "Items" in response:
+                for item in response["Items"]:
+                    print(item)
+                    returnItem = []
+                    returnItem.append(item)
+            else:
+                print("Get item request failed, no item with such data exists.")
+        except ClientError as e:
+            print(e.response['Error']['Message'])
+            print("Get item request failed, no item with such data exists.")
+
+        return returnItem
+
+    def scan_table(self):
+        response = self.table.scan()
+        for item in response['Items']:
+            print(item)
+        # print(response)
+        # scan_kwargs = {
+        #     'FilterExpression': Key('year').between(*year_range),
+        #     'ProjectionExpression': "#yr, title, info.rating",
+        #     'ExpressionAttributeNames': {"#yr": "year"}
+        # }
+        #
+        # done = False
+        # start_key = None
+        # while not done:
+        #     if start_key:
+        #         scan_kwargs['ExclusiveStartKey'] = start_key
+        #     response = self.table.scan()
+        #     display_movies(response.get('Items', []))
+        #     start_key = response.get('LastEvaluatedKey', None)
+        #     done = start_key is None

@@ -8,27 +8,6 @@ from boto3.dynamodb.conditions import Key
 import time
 from dashcam_table_manager import DashcamTableManager
 
-
-# def put_new_img(uid, time, lat, long, imgSrc,dynamodb=None):
-#     if not dynamodb:
-#         dynamodb = boto3.resource('dynamodb', endpoint_url="http://localhost:8000")
-# 
-#     table = dynamodb.Table(databasename)
-#     latitude = str(lat)
-#     longitude = str(long)
-#     response = table.put_item(
-#        Item={
-#             'image_uid': uid,
-#             'time': time,
-#             'info': {
-#                 'latitude': latitude,
-#                 'longitude': longitude,
-#                 'image_source': imgSrc
-#             }
-#         }
-#     )
-#     return response
-
 # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(name)s %(levelname)s:%(message)s')
 # logger = logging.getLogger(__name__)
 
@@ -48,6 +27,12 @@ if __name__ == '__main__':
                 tableManager.list_tables()
             elif int(val)==3:
                 put_sucess = tableManager.put_new_img(42.389459,-83.386596,"http://imgSource.com", "caterpillar")
+            elif int(val)==4:
+                tableManager.scan_table()
+            elif int(val)==5:
+                foundItem = tableManager.get_img(1616718877, '122e0e31-30d9-4563-b489-8a105ec846f0')
+                print(foundItem)
+
 
 
     except KeyboardInterrupt:
