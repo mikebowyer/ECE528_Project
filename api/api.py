@@ -343,8 +343,8 @@ img_array = np.array(im)
 labels = json_response['body']['Labels']
 
 plt.figure(0, clear=True)
-plot_image_and_box(image_array=img_array,
-                   labels=labels)
+feat.plot_image_and_box(image_array=img_array,
+                        labels=labels)
 
 # %% GrabImages Test
 print('\n===== GrabImages API TEST =====')
