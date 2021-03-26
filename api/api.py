@@ -15,7 +15,7 @@ from datetime import datetime
 import numpy as np
 
 # Internal
-from feature import features
+import feature.features as feat
 
 # %% SETUP
 BUCKET_NAME = 'ktopolovbucket'
@@ -70,7 +70,6 @@ def grab_images(event):
                     n_max, req_label),
                 'imageURLs': json.dumps(imageURLs)}
     return response
-    
 
 def share_image(event):
     """
@@ -144,15 +143,16 @@ def share_image(event):
     event['ImageURL'] = image_url
 
     # -- Get labels
-    labels = features.get_features(bucket_name=bucket_name,
-                                   image_name=image_name,
-                                   max_labels=2)
+    labels = feat.get_features(bucket_name=bucket_name,
+                               image_name=image_name,
+                               max_labels=2)
 
     # Remove unwanted labels
     for label in labels:
         for instance in label['Instances']:
             del instance['Confidence']
 
+        del label['Confidence']
         del label['Parents']
 
     # Bounding boxes should be under labels['Instances']
@@ -268,43 +268,6 @@ def get_image_s3(http_request):
     #   img_b64_str = base64.b64encode(response['bytes']).decode()
 
     return response
-
-# %% PLOTTING FUNCTIONS
-def plot_image_and_box(image_array, labels):
-    """
-    Plot an image and corresponding bounding
-    boxes of detected labels
-
-    Parameters
-    ----------
-    img_array : [n_row, n_col, 3] np.array()
-        Image array; can also be PIL Image
-
-    labels : [n_label,] dict
-        Returned from get_json function; each label has:
-
-    Returns
-    -------
-    """
-    n_row, n_col, _ = image_array.shape
-    colors = [np.random.rand(3,) for _ in labels]
-
-    plt.imshow(image_array)
-
-    for ii, label in enumerate(labels):
-        print('Label found: {}'.format(label['Name']))
-        instances = label['Instances']
-        for instance in instances:
-            bounding_box = instance['BoundingBox']
-            width = bounding_box['Width']
-            height = bounding_box['Height']
-            left = bounding_box['Left']
-            top = bounding_box['Top']
-    
-            row = n_col * (left + np.array([0, 0, width, width, 0]))
-            col = n_row * (top + np.array([0, height, height, 0, 0]))
-    
-            plt.plot(row, col, color=colors[ii])
             
 # %% TESTS
 # %% ShareImage Test

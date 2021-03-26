@@ -4,6 +4,8 @@ Provides functionality fr feature extraction from image data stored in S3
 """
 # %% Imports
 import boto3
+import numpy as np
+import matplotlib.pyplot as plt
 
 # %% Functions
 def get_features(bucket_name, image_name, max_labels=5):
@@ -40,6 +42,52 @@ def get_features(bucket_name, image_name, max_labels=5):
     labels = response['Labels']
     return labels
 
+def plot_image_and_box(image_array, labels):
+    """
+    Plot an image and corresponding bounding
+    boxes of detected labels
+
+    Parameters
+    ----------
+    img_array : [n_row, n_col, 3] np.array()
+        Image array; can also be PIL Image
+
+    labels : [n_label,] dict
+        Returned from api.get_json() function or from
+        Rekognition.detect_labels(). Each label has:
+            'Name': str
+                Name of the label detected
+            'Instances': [n,] list of dict
+                List of all instances found for this label. Each instance has:
+                    'BoundingBox': dict
+                        'Width': 0 <= decimal =< 1
+                        'Height': 0 <= decimal =< 1
+                        'Left': 0 <= decimal =< 1
+                        'Top': 0 <= decimal =< 1
+
+    Returns
+    -------
+    """
+    n_row, n_col, _ = image_array.shape
+    colors = [np.random.rand(3,) for _ in labels]
+
+    plt.imshow(image_array)
+
+    for ii, label in enumerate(labels):
+        print('Label found: {}'.format(label['Name']))
+        instances = label['Instances']
+        for instance in instances:
+            bounding_box = instance['BoundingBox']
+            width = bounding_box['Width']
+            height = bounding_box['Height']
+            left = bounding_box['Left']
+            top = bounding_box['Top']
+    
+            row = n_col * (left + np.array([0, 0, width, width, 0]))
+            col = n_row * (top + np.array([0, height, height, 0, 0]))
+    
+            plt.plot(row, col, color=colors[ii])
+
 # %% Main script
 if __name__ == '__main__':
     # Create a metadata dictionary for each image. This all should
@@ -51,8 +99,8 @@ if __name__ == '__main__':
     # Extract features for each, overwriting the image_metas
     print('Begin extracting features')
     labels = get_features(bucket_name=bucket_name,
-                               image_name=image_name,
-                               max_labels=max_labels)
+                          image_name=image_name,
+                          max_labels=max_labels)
     print('Done extracting features')
     print(labels)
     
