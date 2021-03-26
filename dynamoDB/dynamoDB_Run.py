@@ -8,41 +8,7 @@ from boto3.dynamodb.conditions import Key
 import time
 from dashcam_table_manager import DashcamTableManager
 
-#
-# 
-# def create_dashcam_img_table(dynamodb=None):
-#     if not dynamodb:
-#         dynamodb = boto3.resource('dynamodb', endpoint_url="http://localhost:8000")
-# 
-#     table = dynamodb.create_table(
-#         TableName=databasename,
-#         KeySchema=[
-#             {
-#                 'AttributeName': 'image_uid',
-#                 'KeyType': 'HASH'  # Partition key
-#             },
-#             {
-#                 'AttributeName': 'time',
-#                 'KeyType': 'RANGE'  # Sort key
-#             }
-#         ],
-#         AttributeDefinitions=[
-#             {
-#                 'AttributeName': 'image_uid',
-#                 'AttributeType': 'N'
-#             },
-#             {
-#                 'AttributeName': 'time',
-#                 'AttributeType': 'N'
-#             }
-#         ],
-#         ProvisionedThroughput={
-#             'ReadCapacityUnits': 10,
-#             'WriteCapacityUnits': 10
-#         }
-#     )
-#     return table
-# 
+
 # def put_new_img(uid, time, lat, long, imgSrc,dynamodb=None):
 #     if not dynamodb:
 #         dynamodb = boto3.resource('dynamodb', endpoint_url="http://localhost:8000")

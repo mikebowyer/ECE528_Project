@@ -15,7 +15,8 @@ class DashcamTableManager():
         if not dynamoDB:
             self.dynamodb = boto3.resource('dynamodb', endpoint_url="http://localhost:8000")
 
-        self.check_if_table_exists()
+        if not self.check_if_table_exists():
+            self.create_dashcam_img_table()
 
     def check_if_table_exists(self):
         self.table = self.dynamodb.Table(self.tableName)
@@ -42,3 +43,32 @@ class DashcamTableManager():
         print("Tables which are found in this DynamoDB instance: ")
         for table in tables:
             print("\t - {}".format(table))
+
+    def create_dashcam_img_table(self):
+        self.table = self.dynamodb.create_table(
+            TableName=self.tableName,
+            KeySchema=[
+                {
+                    'AttributeName': 'image_uid',
+                    'KeyType': 'HASH'  # Partition key
+                },
+                {
+                    'AttributeName': 'time',
+                    'KeyType': 'RANGE'  # Sort key
+                }
+            ],
+            AttributeDefinitions=[
+                {
+                    'AttributeName': 'image_uid',
+                    'AttributeType': 'N'
+                },
+                {
+                    'AttributeName': 'time',
+                    'AttributeType': 'N'
+                }
+            ],
+            ProvisionedThroughput={
+                'ReadCapacityUnits': 10,
+                'WriteCapacityUnits': 10
+            }
+        )
