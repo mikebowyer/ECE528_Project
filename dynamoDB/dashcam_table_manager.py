@@ -7,12 +7,13 @@ from pprint import pprint
 from botocore.exceptions import ClientError
 from boto3.dynamodb.conditions import Key
 
+
 class DashcamTableManager():
     def __init__(self, tableName, dynamoDB=None):
         self.tableName = tableName
         self.table = None
 
-        #Establish DynamoDB Resource Connection
+        # Establish DynamoDB Resource Connection
         if not dynamoDB:
             self.dynamodb = boto3.resource('dynamodb', endpoint_url="http://localhost:8000")
 
@@ -31,10 +32,10 @@ class DashcamTableManager():
         except:
             # logger.info("The DashCam Images table could not be found")
             print("The DashCam Images table could not be found")
-            returnVal =False
+            returnVal = False
         return returnVal
 
-    def delete_table(self,):
+    def delete_table(self, ):
         print("Deleting table")
         self.table.delete()
         print("Delete sucessful")
@@ -79,33 +80,33 @@ class DashcamTableManager():
     def put_new_img(self, lat, long, imgSrc, detectedLabel):
         print("Adding new entry with lat: {} \tlong:{} \tImage Source: {}".format(lat, long, imgSrc))
 
-        #Preprocess & Generate new entry inputs
+        # Preprocess & Generate new entry inputs
         epochTime = int(time.time())
         uid = str(uuid.uuid4())
         humanReadableTime = str(datetime.datetime.now())
-        latitude = str(lat)
-        longitude = str(long)
+        latitude = Decimal(str(lat))
+        longitude = Decimal(str(long))
         returnVal = False
-        try:
-            response = self.table.put_item(
-               Item={
-                    'time': epochTime,
-                    'image_uid': uid,
-                    'info': {
-                        'human_readable_time': humanReadableTime,
-                        'latitude': latitude,
-                        'longitude': longitude,
-                        'image_source': imgSrc,
-                        'detected_label': detectedLabel
-                    }
+        # try:
+        response = self.table.put_item(
+            Item={
+                'time': epochTime,
+                'image_uid': uid,
+                'info': {
+                    'human_readable_time': humanReadableTime,
+                    'latitude': latitude,
+                    'longitude': longitude,
+                    'image_source': imgSrc,
+                    'detected_label': detectedLabel
                 }
-            )
-            returnVal = True
-        except:
-            returnVal = False
+            }
+        )
+        returnVal = True
 
-        print("Putting new item into table response:")
-        print(response)
+        # print(response)
+        # except:
+        #     print("Error putting new item")
+        #     returnVal = False
 
         return returnVal
 
@@ -116,8 +117,8 @@ class DashcamTableManager():
             response = self.table.get_item(Key={'time': Decimal(time), 'image_uid': uid})
             print("Get item Response:")
             if "Item" in response:
-                 print(response["Item"])
-                 returnItem = response["Item"]
+                print(response["Item"])
+                returnItem = response["Item"]
             elif "Items" in response:
                 for item in response["Items"]:
                     print(item)
@@ -135,6 +136,10 @@ class DashcamTableManager():
         response = self.table.scan()
         for item in response['Items']:
             print(item)
+        returnVal = None
+        if 'Items' in response:
+            returnVal = response['Items']
+        return returnVal
 
     def update_img(self, time, uid, lat=None, long=None, imgSrc=None, detectedLabel=None):
         item = self.get_img(time, uid)
@@ -142,7 +147,7 @@ class DashcamTableManager():
         if item is None:
             print("Unable to update specified item because it cannot be found in the table.")
         else:
-            #Update the item in place for any attributes which we want to change
+            # Update the item in place for any attributes which we want to change
             if lat != None:
                 item['info']['latitude'] = str(lat)
             if long != None:
@@ -152,7 +157,7 @@ class DashcamTableManager():
             if detectedLabel != None:
                 item['info']['detected_label'] = str(detectedLabel)
 
-            #Update the item!
+            # Update the item!
             response = self.table.update_item(
                 Key={
                     'time': time,
@@ -168,7 +173,7 @@ class DashcamTableManager():
                 ReturnValues="UPDATED_NEW"
             )
             print(response)
-            returnVal=True
+            returnVal = True
         return returnVal
 
     def delete_img(self, time, uid):
@@ -187,3 +192,20 @@ class DashcamTableManager():
                 raise
         else:
             return response
+
+    def get_imgs_in_GPS_bounds(self, top_left_lat, top_left_long, bottom_right_lat, bottom_right_long):
+
+        upper_lat = max(top_left_lat, bottom_right_lat)
+        lower_lat = min(top_left_lat, bottom_right_lat)
+        upper_long = max(top_left_long, bottom_right_long)
+        lower_long = min(top_left_long, bottom_right_long)
+
+        items = self.scan_table()
+
+        itemsInBounds = []
+        for item in items:
+            if  upper_lat > item['info']['latitude'] and item['info']['latitude'] > lower_lat:
+                if upper_long > item['info']['longitude'] and item['info']['longitude'] > lower_long:
+                    itemsInBounds.append(item)
+
+        return items
