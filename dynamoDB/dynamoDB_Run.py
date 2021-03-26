@@ -32,6 +32,9 @@ if __name__ == '__main__':
             elif int(val)==5:
                 foundItem = tableManager.get_img(1616718877, '122e0e31-30d9-4563-b489-8a105ec846f0')
                 print(foundItem)
+            elif int(val)==6:
+                result = tableManager.update_img(1616718877, '122e0e31-30d9-4563-b489-8a105ec846f0', lat=32.389459)#detectedLabel='Sloth')
+                print (result)
 
 
 

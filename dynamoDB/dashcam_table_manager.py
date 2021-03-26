@@ -95,7 +95,8 @@ class DashcamTableManager():
                         'human_readable_time': humanReadableTime,
                         'latitude': latitude,
                         'longitude': longitude,
-                        'image_source': imgSrc
+                        'image_source': imgSrc,
+                        'detected_label': detectedLabel
                     }
                 }
             )
@@ -108,7 +109,7 @@ class DashcamTableManager():
 
         return returnVal
 
-    def get_img(self, time, uid=None):
+    def get_img(self, time, uid):
         print("Getting image with time: {} and uid: {}".format(time, uid))
         returnItem = None
         try:
@@ -134,19 +135,38 @@ class DashcamTableManager():
         response = self.table.scan()
         for item in response['Items']:
             print(item)
-        # print(response)
-        # scan_kwargs = {
-        #     'FilterExpression': Key('year').between(*year_range),
-        #     'ProjectionExpression': "#yr, title, info.rating",
-        #     'ExpressionAttributeNames': {"#yr": "year"}
-        # }
-        #
-        # done = False
-        # start_key = None
-        # while not done:
-        #     if start_key:
-        #         scan_kwargs['ExclusiveStartKey'] = start_key
-        #     response = self.table.scan()
-        #     display_movies(response.get('Items', []))
-        #     start_key = response.get('LastEvaluatedKey', None)
-        #     done = start_key is None
+
+    def update_img(self, time, uid, lat=None, long=None, imgSrc=None, detectedLabel=None):
+        item = self.get_img(time, uid)
+        returnVal = False
+        if item is None:
+            print("Unable to update specified item because it cannot be found in the table.")
+        else:
+            #Update the item in place for any attributes which we want to change
+            if lat != None:
+                item['info']['latitude'] = str(lat)
+            if long != None:
+                item['info']['longitude'] = str(long)
+            if imgSrc != None:
+                item['info']['image_source'] = str(imgSrc)
+            if detectedLabel != None:
+                item['info']['detected_label'] = str(detectedLabel)
+
+            #Update the item!
+            response = self.table.update_item(
+                Key={
+                    'time': time,
+                    'image_uid': uid
+                },
+                UpdateExpression="set info.latitude=:lt, info.longitude=:lg, info.image_source=:i, info.detected_label=:d",
+                ExpressionAttributeValues={
+                    ':lt': item['info']['latitude'],
+                    ':lg': item['info']['longitude'],
+                    ':i': item['info']['image_source'],
+                    ':d': item['info']['detected_label']
+                },
+                ReturnValues="UPDATED_NEW"
+            )
+            print(response)
+            returnVal=True
+        return returnVal
