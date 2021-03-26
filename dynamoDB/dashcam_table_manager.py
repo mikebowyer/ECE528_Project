@@ -1,11 +1,6 @@
 from decimal import Decimal
-import json
-import boto3
-import time, datetime, uuid
-import logging
-from pprint import pprint
+import time, datetime, uuid, boto3
 from botocore.exceptions import ClientError
-from boto3.dynamodb.conditions import Key
 
 
 class DashcamTableManager():

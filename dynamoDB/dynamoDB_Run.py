@@ -50,17 +50,5 @@ if __name__ == '__main__':
                 bottom_right_long = -83.372906
                 results = tableManager.get_imgs_in_GPS_bounds(top_left_lat, top_left_long, bottom_right_lat, bottom_right_long)
 
-
-
     except KeyboardInterrupt:
         print('interrupted!')
-    # list_tables()
-
-
-    # if not check_if_table_exists():
-    #     table = create_dashcam_img_table()
-
-    # #Put new Item
-    # put_response = put_new_img(0,int(time.time()), 42.390949, -83.393720,"www.google.com")
-    # logger.info("Put image response: ")
-    # pprint(put_response, sort_dicts=False)
