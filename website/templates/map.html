@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% block content %}
+<h1>Test</h1>
+<p>This has the map.</p>
+<div class="container" style="display: flex; height: 750px;">
+    <div style="width: 35%; text-align: center">
+        <div style="width: 75%; text-align: center">
+            <p id="p1">
+                Images/Info here.
+            </p>
+            <img src={{ url_for('static', filename="dash-cam-example.jpg") }} alt="Dashcam picture">
+        </div>
+    </div>
+    <div id="map" style="flex-grow: 1;">
+        <script type="text/javascript">
+        // The first parameter are the coordinates of the center of the map
+        // The second parameter is the zoom level
+        var map = L.map('map').setView([42.3223, -83.1763], 11);
+        var creds = '{{ credentials }}';
+
+        // {s}, {z}, {x} and {y} are placeholders for map tiles
+        // {x} and {y} are the x/y of where you are on the map
+        // {z} is the zoom level
+        // {s} is the subdomain of cartodb
+        layer = L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+            maxZoom: 18,
+            id: 'mapbox/streets-v11',
+            tileSize: 512,
+            zoomOffset: -1,
+            accessToken: creds
+        }).addTo(map);
+
+        var marker = L.marker([42.3223, -83.1763]).addTo(map);
+
+        marker.bindPopup("<b>Hello world!</b><br>I am a popup.").on('click', onMarkerClick);
+        var popup = L.popup()
+            .setLatLng([42.3223, -83.1763])
+            .setContent("I am a standalone popup.")
+            .openOn(map);
+
+        marker.openPopup()
+
+        function onMapClick(e) {
+            {#alert("You clicked the map at " + e.latlng);#}
+            document.getElementById("p1").innerHTML = "Last Click: " + e.latlng
+        }
+        function onMarkerClick(e) {
+            {#alert("You clicked the map at ");#}
+            document.getElementById("p1").innerHTML = "Last Click: "
+        }
+
+        map.on('click', onMapClick);
+        map.addLayer(layer)
+
+        </script>
+    </div>
+</div>
+{% endblock %}
