@@ -1,0 +1,23 @@
+@startuml
+title Image Upload Process
+
+actor       Dashcam_Owner
+boundary    Image_Upload_API
+control     Lambda_Upload_Function
+control     AWS_Rekognition
+database    AWS_S3
+control     DynamoDB_BackEnd
+database    AWS_DynamoDB
+
+Dashcam_Owner -> Image_Upload_API: {Image, Latitude, Longitude}
+Image_Upload_API -> Lambda_Upload_Function: {Image, Latitude, Longitude}
+Lambda_Upload_Function --> AWS_Rekognition: {Image}
+AWS_Rekognition --> AWS_Rekognition: Detect Contents of Image
+AWS_Rekognition --> Lambda_Upload_Function: {Bounding Box, Label}
+Lambda_Upload_Function --> AWS_S3: {Image with bounding box}
+Lambda_Upload_Function <-- AWS_S3: {URL to Image}
+Lambda_Upload_Function --> DynamoDB_BackEnd: {Image URL, Latitude, Longitude, Label}
+DynamoDB_BackEnd --> AWS_DynamoDB: Create new table entry
+
+
+@enduml

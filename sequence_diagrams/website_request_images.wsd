@@ -1,0 +1,23 @@
+@startuml
+title Website Fetch Images Process
+
+actor       Website_User
+entity      Dashcam_Image_Browsing_Website
+boundary    Image_Fetch_API
+
+control     Lambda_Fetch_Function
+control     DynamoDB_BackEnd
+database    AWS_DynamoDB
+
+Website_User --> Dashcam_Image_Browsing_Website: User scrolls/zooms on map
+Dashcam_Image_Browsing_Website --> Image_Fetch_API: {GPS Bounding Box, Category}
+Image_Fetch_API --> Lambda_Fetch_Function: {GPS Bounding Box, Category}
+Lambda_Fetch_Function --> DynamoDB_BackEnd: {GPS Bounding Box, Category}
+DynamoDB_BackEnd --> DynamoDB_BackEnd: Prepare query request
+DynamoDB_BackEnd --> AWS_DynamoDB: Table query for images within coordinates
+AWS_DynamoDB --> DynamoDB_BackEnd: [{image URL, Latitude, Longitude}]
+DynamoDB_BackEnd --> Lambda_Fetch_Function: [{image URL, Latitude, Longitude}]
+Lambda_Fetch_Function --> Dashcam_Image_Browsing_Website: [{image URL, Latitude, Longitude}]
+Dashcam_Image_Browsing_Website --> Dashcam_Image_Browsing_Website: Update map with new image locations
+
+@enduml
