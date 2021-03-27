@@ -26,19 +26,29 @@
         var map = L.map('map').setView([42.3223, -83.1763], 11); // set to Dearborn
         var creds = '{{ credentials }}';
         var markerList = [];
+        var layer = '';
 
         // {z}, {x} and {y} are placeholders for map tiles
         // {x} and {y} are the x/y of where you are on the map
         // {z} is the zoom level
-        layer = L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
-            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-            maxZoom: 18,
-            id: 'mapbox/streets-v11',
-            tileSize: 512,
-            zoomOffset: -1,
-            accessToken: creds
-        }).addTo(map);
 
+        // Use unregistered if no access key for mapbox
+        if (creds == '') {
+            layer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+        } else {
+            layer = L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+                attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+                maxZoom: 18,
+                id: 'mapbox/streets-v11',
+                tileSize: 512,
+                zoomOffset: -1,
+                accessToken: creds
+            }).addTo(map);
+        }
+        
         updateMarkers({{ markers }})
         updateBoundaries()
 
@@ -70,11 +80,13 @@
             $("#long_id").text(e.latlng.lng);
             $("#speed_id").text(Math.random()*100);
         }
-        function onZoomStart(e) {
+        function onMoveStart(e) {
             // TODO replace with check if in list and update list
-            for (i = 0; i < markerList.length; i++) {
-                markerList[i].remove();
-            }
+            map.eachLayer(function(layer){
+                if (layer instanceof L.Marker) {
+                    layer.remove();
+                }
+            });
         }
         function updateBoundaries(e) {
             var bounds = map.getBounds();
@@ -86,7 +98,7 @@
             console.log(sw_lat);
             $("#zoom").text("Boundaries: [" + sw_lat + ", " + sw_lng + "] to [" + ne_lat + ", " + ne_lng + "]");
         }
-        function onZoomEnd(e) {
+        function onMoveEnd(e) {
             // TODO update markers from marker list from DB
             console.log('Here');
             v1 = [42.3223 + 0.2*Math.random() - 0.1, -83.1763 + 0.2*Math.random() - 0.1];
@@ -97,6 +109,11 @@
             {#alert("You clicked the map at " + e.latlng);#}
             {#document.getElementById("p1").innerHTML = "Last Click: " + e.latlng;#}
         }
+        function onResize(e) {
+            console.log("Fired")
+            onMoveStart(e);
+            onMoveEnd(e);
+        }
         {#function onMapClick(e) {#}
             {#alert("You clicked the map at " + e.latlng);#}
             {#document.getElementById("p1").innerHTML = "Last Click: " + e.latlng;#}
@@ -105,8 +122,10 @@
         {#    .setContent("I am a standalone popup.")#}
         {#    .openOn(map);#}
         {#map.on('click', onMapClick);#}
-        map.on('zoomstart', onZoomStart)
-        map.on('zoomend', onZoomEnd)
+        {#map.on('zoomstart', onZoomStart)#}
+        {#map.on('zoomend', onZoomEnd)#}
+        map.on('moveend', onMoveStart)
+        map.on('moveend', onMoveEnd)
         map.addLayer(layer)
 
         </script>

@@ -2,9 +2,13 @@ from flask import (Flask, render_template, jsonify, request, url_for)
 import os
 import os.path
 import db
-import config
+try:
+    import config
+except ImportError:
+    config = ''
+    pass
 
-creds = config.map_key
+creds = config.map_key if hasattr(config, 'map_key') else ""
 
 app = Flask(__name__)
 
