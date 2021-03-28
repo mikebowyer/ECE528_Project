@@ -4,13 +4,15 @@ from botocore.exceptions import ClientError
 
 
 class DashcamTableManager():
-    def __init__(self, tableName, dynamoDB=None):
+    def __init__(self, tableName, dynamoDB_local=False):
         self.tableName = tableName
         self.table = None
 
-        # Establish DynamoDB Resource Connection
-        if not dynamoDB:
+        # Establish DynamoDB Resource Connection locally or to AWS
+        if dynamoDB_local:
             self.dynamodb = boto3.resource('dynamodb', endpoint_url="http://localhost:8000")
+        else:
+            self.dynamodb = boto3.resource('dynamodb')
 
         if not self.check_if_table_exists():
             self.create_dashcam_img_table()
