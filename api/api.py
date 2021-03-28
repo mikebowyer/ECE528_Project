@@ -12,21 +12,15 @@ import requests
 from PIL import Image
 import matplotlib.pyplot as plt
 from datetime import datetime
-import numpy as np
+import time
 
 # Internal
 import feature.features as feat
 
-# %% SETUP
-BUCKET_NAME = 'ktopolovbucket'
-stage_url = 'https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev'
-
-# Local files
-local_image_file = 'data/dashcams-2048px-20.jpg'
-
-test_method = 'local'  # 'local', 'api'
-
 # %% REQUEST FUNCTIONS
+# These are simple functions that make use of the boto3 SDK provided
+# by AWS to interact with AWS's different services. These functions are
+# directly copied into AWS Lambda, where they are invoked by AWS API Gateway
 def query_database(req_label, n_max):
     """
     Placeholder function
@@ -83,9 +77,8 @@ def share_image(event):
                 Latitude in degrees
             'Longitude': decimal
                 Longitude in degrees
-            'DateTimeStr': str
-                data time string in format:
-                    yyyy-mm-dd hh:mm:ss.mmmmmm
+            'EpochTime': decimal
+                Time since epoch from time.time()
             'ImageBase64': str
                 Image encoded as a base64 string
 
@@ -112,56 +105,67 @@ def share_image(event):
     try:
         lat = event['Latitude']
         lon = event['Longitude']
-        date_time_string = event['DateTimeStr']
+        epoch_time = event['EpochTime']
         image_base64 = event['ImageBase64']
     except:
         statusCode = 400
         message = 'Missing at least one HTTP request parameter'
 
-    # d for data, t for time
-    ext = '.jpg'
-    name = date_time_string # current date and time
-    image_name = name + ext
+    # Files stored with name '<epoch_time>.<ext>'
+    base_image_name = '{}.jpg'.format(epoch_time)
 
-    # -- Upload image
-    image_bytes = base64.b64decode(image_base64)
+    # -- Upload original image
+    original_image_name = 'original_' + base_image_name
+    original_image_bytes = base64.b64decode(image_base64)
     s3_client = boto3.client('s3')
     response = s3_client.put_object(
-            Body=image_bytes,
+            Body=original_image_bytes,
             Bucket=bucket_name,
-            Key=image_name,
+            Key=original_image_name,
             ACL='public-read')  # enable public read access
-    del event['ImageBase64']  # delete bytes from metadata
+    original_image_url = 'https://{}.s3.amazonaws.com/{}'.format(
+        bucket_name,
+        original_image_name)
 
     if response['ResponseMetadata']['HTTPStatusCode'] != 200:
         statusCode = 500
         message = 'Unable to upload image to S3'
 
-    # -- Get URL
-    image_url = 'https://{}.s3.amazonaws.com/{}'.format(bucket_name,
-                                                        image_name)
-    event['ImageURL'] = image_url
-
     # -- Get labels
     labels = feat.get_features(bucket_name=bucket_name,
-                               image_name=image_name,
+                               image_name=original_image_name,
                                max_labels=2)
 
-    # Remove unwanted labels
-    for label in labels:
-        for instance in label['Instances']:
-            del instance['Confidence']
+    # -- Label image and store
+    labeled_image_name = 'labeled_' + base_image_name
+    labeled_image_bytes = feat.label_image(
+        image_bytes=image_bytes,
+        labels=labels)
 
-        del label['Confidence']
-        del label['Parents']
-
-    # Bounding boxes should be under labels['Instances']
-    event['Labels'] = labels
+    s3_client = boto3.client('s3')
+    response = s3_client.put_object(
+            Body=labeled_image_bytes,
+            Bucket=bucket_name,
+            Key=labeled_image_name,
+            ACL='public-read')  # enable public read access
+    labeled_image_url = 'https://{}.s3.amazonaws.com/{}'.format(
+        bucket_name,
+        labeled_image_name)
+    
+    if response['ResponseMetadata']['HTTPStatusCode'] != 200:
+        statusCode = 500
+        message = 'Unable to upload image to S3'
 
     # -- Replace this with storage into DynamoDB
-    json_str = json.dumps(event)
-    ext = '.json'
-    json_name = name + ext
+    dynamo_meta = {'Latitude': lat,
+                   'Longitude': lon,
+                   'EpochTime': epoch_time,
+                   'ImageURL': original_image_url,
+                   'LabeledImageURL': labeled_image_url,
+                   'Labels': labels}
+    # dynamo.add_item(dynamo_meta)
+    json_str = json.dumps(dynamo_meta)
+    json_name = str(epoch_time) + '.json'
     response = s3_client.put_object(
         Body=json_str,
         Bucket=bucket_name,
@@ -171,11 +175,9 @@ def share_image(event):
         statusCode = 500
         message = 'Unable to upload JSON to S3'
 
+    # Send response back with a status code
     response = {'statusCode': statusCode,
-                'message': message,
-                'imageURL': image_url,
-                'imageName': image_name,
-                'jsonName': json_name}
+                'dynamoMeta': json.dumps(dynamo_meta)}
     return response
 
 def get_json_s3(event):
@@ -270,95 +272,130 @@ def get_image_s3(http_request):
     return response
             
 # %% TESTS
-# %% ShareImage Test
-print('\n===== ShareImage {} TEST ====='.format(test_method))
+if __name__ == '__main__':
+    # %% SETUP
+    BUCKET_NAME = 'ktopolovbucket'
+    stage_url = 'https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev'
+    
+    # Local files
+    local_image_file = 'data/dashcams-2048px-20.jpg'
+    
+    test_method = 'local'  # 'local', 'api'
 
-# Read local image file
-with open(local_image_file, 'rb') as file:
-    image_bytes = file.read()
-    image_base64 = base64.b64encode(image_bytes).decode()
+    # %% ShareImage Test
+    print('\n===== ShareImage {} TEST ====='.format(test_method))
+    
+    # Read local image file
+    with open(local_image_file, 'rb') as file:
+        image_bytes = file.read()
+        image_base64 = base64.b64encode(image_bytes).decode()
 
-# Setup PUT request HTTP body contents
-http_body = {'Latitude': 40.0,
-             'Longitude': 41.0,
-             # 'DateTimeStr': str(datetime.now()),
-             'DateTimeStr': '2021-03-26 14:00:47.935047',
-             'ImageBase64': image_base64}
+    # Setup PUT request HTTP body contents
+    http_body = {'Latitude': 40.0,
+                 'Longitude': 41.0,
+                 'EpochTime': time.time(),
+                 'ImageBase64': image_base64}
+    
+    # Send request
+    if test_method == 'local':
+        share_image_response = share_image(event=http_body)
+    elif test_method == 'api':
+        request_url = stage_url + '/share-image'
+        http_body_str = json.dumps(http_body)  # Must make string for put request
+        share_image_response = requests.put(url=request_url, data=http_body_str).json()
+    else:
+        raise ValueError('Unknown test_method {}'.format(test_method))
 
-# Send request
-if test_method == 'local':
-    share_image_response = share_image(event=http_body)
-elif test_method == 'api':
-    request_url = stage_url + '/share-image'
-    http_body_str = json.dumps(http_body)  # Must make string for put request
-    share_image_response = requests.put(url=request_url, data=http_body_str).json()
-else:
-    raise ValueError('Unknown test_method {}'.format(test_method))
+    dynamo_dict = json.loads(share_image_response['dynamoMeta'])
+    print(dynamo_dict['ImageURL'])
 
-print(share_image_response)
+    # %% GetJson Test
+    print('\n===== GetJson {} TEST ====='.format(test_method))
+    
+    # JSON named with epoch_time.json()
+    image_url = dynamo_dict['ImageURL']
+    image_name = image_url.split('/')[-1]
+    epoch_time = image_name.replace('original_', '').replace('.jpg', '')
+    json_name = epoch_time + '.json'
+    
+    # Setup Query ?key&value pairs for HTTP request
+    params = {'fileName': json_name,
+              'bucketName': BUCKET_NAME}
 
-# %% GetJson Test
-print('\n===== GetJson {} TEST ====='.format(test_method))
+    # Send request
+    if test_method == 'local':
+        json_response = get_json_s3(event=params)
+    elif test_method == 'api':
+        request_url = stage_url + '/get-json-s3'
+        json_response = requests.get(url=request_url, params=params).json()
+    else:
+        raise ValueError('Unknown test_method {}'.format(test_method))
+    
+    print('\tstatusCode: {}'.format(json_response['statusCode']))
+    
+    json_body = json_response['body']
+    labels = json_body['Labels']
+    print('\t{} Labels Found'.format(len(labels)))
+    
+    # %% GetImage Test
+    print('\n===== GetImage Local TEST =====')
+    orig_image_url = dynamo_dict['ImageURL'].split('/')[-1]
+    labeled_image_url = dynamo_dict['LabeledImageURL'].split('/')[-1]
 
-# Get filename of JSON that was just shared
-json_name = share_image_response['jsonName']
+    orig_params = {'bucketName': BUCKET_NAME,
+                   'imageName': orig_image_url}
+    labeled_params = {'bucketName': BUCKET_NAME,
+                      'imageName': labeled_image_url}
 
-# Setup Query ?key&value pairs for HTTP request
-params = {'fileName': json_name,
-          'bucketName': BUCKET_NAME}
+    # Send request
+    if test_method == 'local':
+        orig_image_response = get_image_s3(http_request=orig_params)
+        labeled_image_response = get_image_s3(http_request=labeled_params)
+    elif test_method == 'api':
+        request_url = stage_url + '/get-image-s3'
+        orig_image_response = requests.get(
+            url=request_url,
+            params=orig_params).json()
+        labeled_image_response = requests.get(
+            url=request_url,
+            params=labeled_params).json()
+    else:
+        raise ValueError('Unknown test_method {}'.format(test_method))
 
-# Send request
-if test_method == 'local':
-    json_response = get_json_s3(event=params)
-elif test_method == 'api':
-    request_url = stage_url + '/get-json-s3'
-    json_response = requests.get(url=request_url, params=params).json()
-else:
-    raise ValueError('Unknown test_method {}'.format(test_method))
+    # Plot image and bounding boxes
+    orig_image_b64 = orig_image_response['imageBase64']
+    orig_image_bytes = base64.b64decode(orig_image_b64)
+    pil_orig_image = Image.open(io.BytesIO(orig_image_bytes))
+    plt.figure(1, clear=True)
+    plt.subplot(1, 2, 1)
+    plt.imshow(pil_orig_image)
+    plt.title('Original Image')
 
-print('\tstatusCode: {}'.format(json_response['statusCode']))
+    # Labeled image
+    labeled_image_b64 = labeled_image_response['imageBase64']
+    labeled_image_bytes = base64.b64decode(labeled_image_b64)
+    pil_label_image = Image.open(io.BytesIO(labeled_image_bytes))
+    plt.subplot(1, 2, 2)
+    plt.imshow(pil_label_image)
+    plt.title('Labeled Image')
 
-json_body = json_response['body']
-print('\t{} Labels Found'.format(len(json_body['Labels'])))
+    # plt.subplot(1, 2, 2)
+    # plt.imshow(labeled_image)
+    # plt.title('Labeled Image')
 
-# %% GetImage Test
-print('\n===== GetImage Local TEST =====')
-params = {'bucketName': BUCKET_NAME,
-          'imageName': share_image_response['imageName']}
+    # %% GrabImages Test
+    print('\n===== GrabImages API TEST =====')
+    params = {'ReqLabel': 'Dog',
+              'MaxNumImages': 5}
 
-# Send request
-if test_method == 'local':
-    image_response = get_image_s3(http_request=params)
-elif test_method == 'api':
-    request_url = stage_url + '/get-image-s3'
-    image_response = requests.get(url=request_url, params=params).json()
-else:
-    raise ValueError('Unknown test_method {}'.format(test_method))
+    # Send request
+    if test_method == 'local':
+        query_response = grab_images(event=params)
+    elif test_method == 'api':
+        request_url = stage_url + '/grab-images'
+        query_response = requests.get(url=request_url,
+                                      params=params).json()
+    else:
+        raise ValueError('Unknown test_method {}'.format(test_method))
 
-# Plot image and boudning boxes
-image_b64 = image_response['imageBase64']
-im = Image.open(io.BytesIO(base64.b64decode(image_b64)))
-img_array = np.array(im)
-
-labels = json_response['body']['Labels']
-
-plt.figure(0, clear=True)
-feat.plot_image_and_box(image_array=img_array,
-                        labels=labels)
-
-# %% GrabImages Test
-print('\n===== GrabImages API TEST =====')
-params = {'ReqLabel': 'Dog',
-          'MaxNumImages': 5}
-
-# Send request
-if test_method == 'local':
-    query_response = grab_images(event=params)
-elif test_method == 'api':
-    request_url = stage_url + '/grab-images'
-    query_response = requests.get(url=request_url,
-                                  params=params).json()
-else:
-    raise ValueError('Unknown test_method {}'.format(test_method))
-
-print(query_response)
+    print(query_response)

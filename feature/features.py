@@ -5,7 +5,8 @@ Provides functionality fr feature extraction from image data stored in S3
 # %% Imports
 import boto3
 import numpy as np
-import matplotlib.pyplot as plt
+from PIL import ImageDraw, Image
+import io
 
 # %% Functions
 def get_features(bucket_name, image_name, max_labels=5):
@@ -40,17 +41,26 @@ def get_features(bucket_name, image_name, max_labels=5):
     response = rekog_client.detect_labels(Image={'S3Object': S3_Object},
                                           MaxLabels=max_labels)
     labels = response['Labels']
+
+    # trim out parts we don't want (confidence and parents)
+    for label in labels:
+        del label['Confidence']
+        del label['Parents']
+
+        for instance in label['Instances']:
+            del instance['Confidence']        
+
     return labels
 
-def plot_image_and_box(image_array, labels):
+def label_image(image_bytes, labels):
     """
     Plot an image and corresponding bounding
     boxes of detected labels
 
     Parameters
     ----------
-    img_array : [n_row, n_col, 3] np.array()
-        Image array; can also be PIL Image
+    image_bytes : bytes
+        Image as bytes
 
     labels : [n_label,] dict
         Returned from api.get_json() function or from
@@ -67,33 +77,47 @@ def plot_image_and_box(image_array, labels):
 
     Returns
     -------
+    labeled_image_bytes : bytes
+        Labeled image as bytes
     """
-    n_row, n_col, _ = image_array.shape
+    labeled_image = Image.open(io.BytesIO(image_bytes))
+
+    # Weird it gives size in this format
+    n_col, n_row = labeled_image.size
     colors = [np.random.rand(3,) for _ in labels]
 
-    plt.imshow(image_array)
+    # Draw original image
+    d = ImageDraw.Draw(labeled_image)
 
-    for ii, label in enumerate(labels):
-        print('Label found: {}'.format(label['Name']))
+    for color, label in zip(colors, labels):
         instances = label['Instances']
-        for instance in instances:
+        for jj, instance in enumerate(instances):
             bounding_box = instance['BoundingBox']
-            width = bounding_box['Width']
-            height = bounding_box['Height']
-            left = bounding_box['Left']
-            top = bounding_box['Top']
-    
-            row = n_col * (left + np.array([0, 0, width, width, 0]))
-            col = n_row * (top + np.array([0, height, height, 0, 0]))
-    
-            plt.plot(row, col, color=colors[ii])
+            width = int(n_col * bounding_box['Width'])
+            height = int(n_row * bounding_box['Height'])
+            left = int(n_col * bounding_box['Left'])
+            top = int(n_row * bounding_box['Top'])
+
+            points = [(left, top),
+                      (left, top + height),
+                      (left + width, top + height),
+                      (left + width, top),
+                      (left, top)]
+
+            color = tuple((np.array(color) * 255).astype(np.uint8))
+            d.line(points, fill=color, width=5)
+
+    labeled_image_bytes = io.BytesIO()
+    labeled_image.save(labeled_image_bytes, format="JPEG")
+    labeled_image_bytes = labeled_image_bytes.getvalue()
+    return labeled_image_bytes
 
 # %% Main script
 if __name__ == '__main__':
     # Create a metadata dictionary for each image. This all should
     # come from our DynamoDB database
     bucket_name = 'ktopolovbucket'
-    image_name = 'd25-12-2021-t-14-45-22.jpg'
+    image_name = 'original_1616897414.6725974.jpg'
     max_labels = 5
 
     # Extract features for each, overwriting the image_metas
@@ -103,4 +127,3 @@ if __name__ == '__main__':
                           max_labels=max_labels)
     print('Done extracting features')
     print(labels)
-    
