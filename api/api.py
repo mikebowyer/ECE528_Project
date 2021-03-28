@@ -346,21 +346,23 @@ if __name__ == '__main__':
 
     orig_params = {'bucketName': BUCKET_NAME,
                    'imageName': orig_image_url}
-    labeled_params = {'bucketName': BUCKET_NAME,
-                      'imageName': labeled_image_url}
 
     # Send request
     if test_method == 'local':
         orig_image_response = get_image_s3(http_request=orig_params)
+    
+        labeled_params = {'bucketName': BUCKET_NAME,
+                          'imageName': labeled_image_url}
         labeled_image_response = get_image_s3(http_request=labeled_params)
+        
     elif test_method == 'api':
         request_url = stage_url + '/get-image-s3'
         orig_image_response = requests.get(
             url=request_url,
             params=orig_params).json()
-        labeled_image_response = requests.get(
-            url=request_url,
-            params=labeled_params).json()
+        # labeled_image_response = requests.get(
+        #     url=request_url,
+        #     params=labeled_params).json()
     else:
         raise ValueError('Unknown test_method {}'.format(test_method))
 
@@ -374,12 +376,13 @@ if __name__ == '__main__':
     plt.title('Original Image')
 
     # Labeled image
-    labeled_image_b64 = labeled_image_response['imageBase64']
-    labeled_image_bytes = base64.b64decode(labeled_image_b64)
-    pil_label_image = Image.open(io.BytesIO(labeled_image_bytes))
-    plt.subplot(1, 2, 2)
-    plt.imshow(pil_label_image)
-    plt.title('Labeled Image')
+    if test_method == 'api':
+        labeled_image_b64 = labeled_image_response['imageBase64']
+        labeled_image_bytes = base64.b64decode(labeled_image_b64)
+        pil_label_image = Image.open(io.BytesIO(labeled_image_bytes))
+        plt.subplot(1, 2, 2)
+        plt.imshow(pil_label_image)
+        plt.title('Labeled Image')
 
     # plt.subplot(1, 2, 2)
     # plt.imshow(labeled_image)
