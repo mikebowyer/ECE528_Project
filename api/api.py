@@ -11,10 +11,10 @@ import io
 import requests
 from PIL import Image
 import matplotlib.pyplot as plt
-from datetime import datetime
 import time
 
 # Internal
+from table_manager.dashcam_table_manager import DashcamTableManager
 import feature.features as feat
 
 # %% REQUEST FUNCTIONS
@@ -105,13 +105,13 @@ def share_image(event):
     try:
         lat = event['Latitude']
         lon = event['Longitude']
-        epoch_time = event['EpochTime']
         image_base64 = event['ImageBase64']
     except:
         statusCode = 400
         message = 'Missing at least one HTTP request parameter'
 
     # Files stored with name '<epoch_time>.<ext>'
+    epoch_time = int(time.time())
     base_image_name = '{}.jpg'.format(epoch_time)
 
     # -- Upload original image
@@ -137,32 +137,49 @@ def share_image(event):
                                max_labels=2)
 
     # -- Label image and store
-    labeled_image_name = 'labeled_' + base_image_name
-    labeled_image_bytes = feat.label_image(
-        image_bytes=original_image_bytes,
-        labels=labels)
+    # labeled_image_name = 'labeled_' + base_image_name
+    # labeled_image_bytes = feat.label_image(
+    #     image_bytes=original_image_bytes,
+    #     labels=labels)
 
-    s3_client = boto3.client('s3')
-    response = s3_client.put_object(
-            Body=labeled_image_bytes,
-            Bucket=bucket_name,
-            Key=labeled_image_name,
-            ACL='public-read')  # enable public read access
-    labeled_image_url = 'https://{}.s3.amazonaws.com/{}'.format(
-        bucket_name,
-        labeled_image_name)
+    # s3_client = boto3.client('s3')
+    # response = s3_client.put_object(
+    #         Body=labeled_image_bytes,
+    #         Bucket=bucket_name,
+    #         Key=labeled_image_name,
+    #         ACL='public-read')  # enable public read access
+    # labeled_image_url = 'https://{}.s3.amazonaws.com/{}'.format(
+    #     bucket_name,
+    #     labeled_image_name)
     
-    if response['ResponseMetadata']['HTTPStatusCode'] != 200:
-        statusCode = 500
-        message = 'Unable to upload labeled image to S3'
+    # if response['ResponseMetadata']['HTTPStatusCode'] != 200:
+    #     statusCode = 500
+    #     message = 'Unable to upload labeled image to S3'
+    labeled_image_url = ''
 
     # -- Replace this with storage into DynamoDB
+    label_names = []
+    for label in labels:
+        label_names.append(label['Name'])
+
+    human_readable_time = time.strftime("%Y-%m-%d %H:%M:%S",
+                                        time.gmtime(epoch_time))
     dynamo_meta = {'Latitude': lat,
                    'Longitude': lon,
                    'EpochTime': epoch_time,
                    'ImageURL': original_image_url,
                    'LabeledImageURL': labeled_image_url,
-                   'Labels': labels}
+                   'humanReadableTime': human_readable_time,
+                   'Labels': label_names}
+
+    TableManager = DashcamTableManager("dashcam_images")
+    TableManager.put_new_img(epochTime=dynamo_meta['EpochTime'],
+                             humanReadableTime=dynamo_meta['humanReadableTime'],
+                             lat=dynamo_meta['Latitude'],
+                             long=dynamo_meta['Longitude'],
+                             imgSrc=dynamo_meta['ImageURL'],
+                             detectedLabels=dynamo_meta['Labels'])
+
     # dynamo.add_item(dynamo_meta)
     json_str = json.dumps(dynamo_meta)
     json_name = str(epoch_time) + '.json'
@@ -180,6 +197,7 @@ def share_image(event):
                 'message': message,
                 'dynamoMeta': json.dumps(dynamo_meta)}
     return response
+
 
 def get_json_s3(event):
     """
@@ -280,7 +298,6 @@ if __name__ == '__main__':
     
     # Local files
     local_image_file = 'data/dashcams-2048px-20.jpg'
-    
     test_method = 'api'  # 'local', 'api'
 
     # %% ShareImage Test
@@ -346,14 +363,13 @@ if __name__ == '__main__':
 
     orig_params = {'bucketName': BUCKET_NAME,
                    'imageName': orig_image_url}
+    # labeled_params = {'bucketName': BUCKET_NAME,
+    #                   'imageName': labeled_image_url}
 
     # Send request
     if test_method == 'local':
         orig_image_response = get_image_s3(http_request=orig_params)
-    
-        labeled_params = {'bucketName': BUCKET_NAME,
-                          'imageName': labeled_image_url}
-        labeled_image_response = get_image_s3(http_request=labeled_params)
+        # labeled_image_response = get_image_s3(http_request=labeled_params)
         
     elif test_method == 'api':
         request_url = stage_url + '/get-image-s3'
@@ -376,16 +392,11 @@ if __name__ == '__main__':
     plt.title('Original Image')
 
     # Labeled image
-    if test_method == 'api':
-        labeled_image_b64 = labeled_image_response['imageBase64']
-        labeled_image_bytes = base64.b64decode(labeled_image_b64)
-        pil_label_image = Image.open(io.BytesIO(labeled_image_bytes))
-        plt.subplot(1, 2, 2)
-        plt.imshow(pil_label_image)
-        plt.title('Labeled Image')
-
+    # labeled_image_b64 = labeled_image_response['imageBase64']
+    # labeled_image_bytes = base64.b64decode(labeled_image_b64)
+    # pil_label_image = Image.open(io.BytesIO(labeled_image_bytes))
     # plt.subplot(1, 2, 2)
-    # plt.imshow(labeled_image)
+    # plt.imshow(pil_label_image)
     # plt.title('Labeled Image')
 
     # %% GrabImages Test

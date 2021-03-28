@@ -74,13 +74,12 @@ class DashcamTableManager():
             }
         )
 
-    def put_new_img(self, lat, long, imgSrc, detectedLabel):
+    def put_new_img(self, epochTime, lat, long, imgSrc, detectedLabels,
+                    humanReadableTime):
         print("Adding new entry with lat: {} \tlong:{} \tImage Source: {}".format(lat, long, imgSrc))
 
         # Preprocess & Generate new entry inputs
-        epochTime = int(time.time())
         uid = str(uuid.uuid4())
-        humanReadableTime = str(datetime.datetime.now())
         latitude = Decimal(str(lat))
         longitude = Decimal(str(long))
         returnVal = False
@@ -94,7 +93,7 @@ class DashcamTableManager():
                     'latitude': latitude,
                     'longitude': longitude,
                     'image_source': imgSrc,
-                    'detected_label': detectedLabel
+                    'detected_labels': detectedLabels
                 }
             }
         )
