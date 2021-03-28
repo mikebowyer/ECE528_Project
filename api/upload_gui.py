@@ -64,16 +64,26 @@ long_entry.insert(0, '40.12')
 # -- File Entry
 browse_button = tk.Button(
     text="Browse",
+    bd=3,
+    height=3,
+    width=10,
+    bg='yellow',
+    fg='black',
     command=get_filename).grid(row=2, column=0)
 
 file_str = tk.StringVar()
-file_str.set('hi')
+file_str.set('')
 file_entry = tk.Entry(textvariable=file_str)
 file_entry.grid(row=2, column=1)
 
 # -- Upload
 upload_button = tk.Button(
     text="Upload",
+    bd=3,
+    height=3,
+    width=10,
+    bg='green',
+    fg='white',
     command=upload).grid(row=3, column=0)
 status_str = tk.StringVar()
 status_str.set('')
