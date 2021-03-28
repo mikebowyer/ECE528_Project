@@ -4,8 +4,8 @@ Provides functionality fr feature extraction from image data stored in S3
 """
 # %% Imports
 import boto3
-import numpy as np
-from PIL import ImageDraw, Image
+import random
+from PIL import ImageDraw, Image, ImageFont
 import io
 
 # %% Functions
@@ -84,10 +84,13 @@ def label_image(image_bytes, labels):
 
     # Weird it gives size in this format
     n_col, n_row = labeled_image.size
-    colors = [np.random.rand(3,) for _ in labels]
+    colors = [(int(random.uniform(0, 255)),
+               int(random.uniform(0, 255)),
+               int(random.uniform(0, 255))) for label in labels]
 
     # Draw original image
     d = ImageDraw.Draw(labeled_image)
+    font = ImageFont.truetype("arial.ttf", 25)
 
     for color, label in zip(colors, labels):
         instances = label['Instances']
@@ -104,8 +107,14 @@ def label_image(image_bytes, labels):
                       (left + width, top),
                       (left, top)]
 
-            color = tuple((np.array(color) * 255).astype(np.uint8))
+            color = tuple(color)
             d.line(points, fill=color, width=5)
+
+            # Write label name
+            d.text((left + 3, top + 3),
+                   label['Name'],
+                   fill=(255, 255, 255, 255),
+                   font=font)
 
     labeled_image_bytes = io.BytesIO()
     labeled_image.save(labeled_image_bytes, format="JPEG")

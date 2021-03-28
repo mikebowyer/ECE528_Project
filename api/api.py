@@ -129,7 +129,7 @@ def share_image(event):
 
     if response['ResponseMetadata']['HTTPStatusCode'] != 200:
         statusCode = 500
-        message = 'Unable to upload image to S3'
+        message = 'Unable to upload original image to S3'
 
     # -- Get labels
     labels = feat.get_features(bucket_name=bucket_name,
@@ -139,7 +139,7 @@ def share_image(event):
     # -- Label image and store
     labeled_image_name = 'labeled_' + base_image_name
     labeled_image_bytes = feat.label_image(
-        image_bytes=image_bytes,
+        image_bytes=original_image_bytes,
         labels=labels)
 
     s3_client = boto3.client('s3')
@@ -154,7 +154,7 @@ def share_image(event):
     
     if response['ResponseMetadata']['HTTPStatusCode'] != 200:
         statusCode = 500
-        message = 'Unable to upload image to S3'
+        message = 'Unable to upload labeled image to S3'
 
     # -- Replace this with storage into DynamoDB
     dynamo_meta = {'Latitude': lat,
@@ -177,6 +177,7 @@ def share_image(event):
 
     # Send response back with a status code
     response = {'statusCode': statusCode,
+                'message': message,
                 'dynamoMeta': json.dumps(dynamo_meta)}
     return response
 
@@ -280,7 +281,7 @@ if __name__ == '__main__':
     # Local files
     local_image_file = 'data/dashcams-2048px-20.jpg'
     
-    test_method = 'local'  # 'local', 'api'
+    test_method = 'api'  # 'local', 'api'
 
     # %% ShareImage Test
     print('\n===== ShareImage {} TEST ====='.format(test_method))
@@ -293,7 +294,8 @@ if __name__ == '__main__':
     # Setup PUT request HTTP body contents
     http_body = {'Latitude': 40.0,
                  'Longitude': 41.0,
-                 'EpochTime': time.time(),
+                 # 'EpochTime': time.time(),
+                 'EpochTime': 1616938736.101607,  # use this so i dont make 50 files
                  'ImageBase64': image_base64}
     
     # Send request
