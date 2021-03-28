@@ -311,8 +311,6 @@ if __name__ == '__main__':
     # Setup PUT request HTTP body contents
     http_body = {'Latitude': 40.0,
                  'Longitude': 41.0,
-                 # 'EpochTime': time.time(),
-                 'EpochTime': 1616938736.101607,  # use this so i dont make 50 files
                  'ImageBase64': image_base64}
     
     # Send request
