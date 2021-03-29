@@ -7,7 +7,7 @@
             <h1>Image Data</h1>
             <p id="zoom">Boundaries:</p>
             <div class="image_container">
-                <img class="resize"; id="img1"; src="/static/images/dash-cam-example.jpg"; alt="Dashcam picture">
+                <img class="resize"; id="img1"; src="/static/images/box_image.jpg"; alt="Dashcam picture">
             </div>
             <p>The information below was extracted from the AWS Rekognition service.</p>
             <ul>
@@ -20,7 +20,7 @@
     </div>
     <div id="map" style="flex-grow: 1;">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-        <script type = "text/javascript">
+        <script type = "text/javascript" >
         // The first parameter are the coordinates of the center of the map
         // The second parameter is the zoom level
         var map = L.map('map').setView([42.3223, -83.1763], 11); // set to Dearborn
@@ -49,12 +49,12 @@
             }).addTo(map);
         }
         
-        updateMarkers({{ markers }})
-        updateBoundaries()
+        updateMarkers({{ markers }});
+        updateBoundaries();
 
         function updateMarkers(markers) {
             for (m = 0; m < markers.length; m++) {
-                if (markers[m]) {
+                if (markers[m] ) {
                     var val = markers[m];
                     console.log(val)
                     markerList[m] = L.marker(val).addTo(map).bindPopup("<b>Hello world!</b><br>I am a popup.").on('click', onMarkerClick);
@@ -80,11 +80,18 @@
             $("#long_id").text(e.latlng.lng);
             $("#speed_id").text(Math.random()*100);
         }
-        function onMoveStart(e) {
+        function deleteMarkers() {
             // TODO replace with check if in list and update list
-            map.eachLayer(function(layer){
-                if (layer instanceof L.Marker) {
-                    layer.remove();
+            map.eachLayer(function(lyr){
+                if (lyr instanceof L.Marker) {
+                    lyr.remove();
+                    // Remove from marker list as well
+                    for (var i = 0; i < markerList.length; i++) {
+                        if (Object.is(markerList[i], lyr)) {
+                            markerList.splice(i,1);
+                        }
+                    }
+
                 }
             });
         }
@@ -100,20 +107,17 @@
         }
         function onMoveEnd(e) {
             // TODO update markers from marker list from DB
-            console.log('Here');
+            deleteMarkers();
             v1 = [42.3223 + 0.2*Math.random() - 0.1, -83.1763 + 0.2*Math.random() - 0.1];
             v2 = [42.3223 + 0.2*Math.random() - 0.1, -83.1763 + 0.2*Math.random() - 0.1];
             v3 = [42.3223 + 0.2*Math.random() - 0.1, -83.1763 + 0.2*Math.random() - 0.1];
+            //v1 = [42.4223, -83.1763 ];
+            //v2 = [42.3223 , -83.1763 ];
+            //v3 = [42.2223 , -83.1763 ];
             updateMarkers([v1, v2, v3]);
-            updateBoundaries()
-            {#alert("You clicked the map at " + e.latlng);#}
-            {#document.getElementById("p1").innerHTML = "Last Click: " + e.latlng;#}
+            updateBoundaries();
         }
-        function onResize(e) {
-            console.log("Fired")
-            onMoveStart(e);
-            onMoveEnd(e);
-        }
+
         {#function onMapClick(e) {#}
             {#alert("You clicked the map at " + e.latlng);#}
             {#document.getElementById("p1").innerHTML = "Last Click: " + e.latlng;#}
@@ -124,7 +128,7 @@
         {#map.on('click', onMapClick);#}
         {#map.on('zoomstart', onZoomStart)#}
         {#map.on('zoomend', onZoomEnd)#}
-        map.on('moveend', onMoveStart)
+        map.on('movestart', deleteMarkers)
         map.on('moveend', onMoveEnd)
         map.addLayer(layer)
 
