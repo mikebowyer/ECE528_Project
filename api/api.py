@@ -137,25 +137,24 @@ def share_image(event):
                                max_labels=2)
 
     # -- Label image and store
-    # labeled_image_name = 'labeled_' + base_image_name
-    # labeled_image_bytes = feat.label_image(
-    #     image_bytes=original_image_bytes,
-    #     labels=labels)
+    labeled_image_name = 'labeled_' + base_image_name
+    labeled_image_bytes = feat.label_image(
+        image_bytes=original_image_bytes,
+        labels=labels)
 
-    # s3_client = boto3.client('s3')
-    # response = s3_client.put_object(
-    #         Body=labeled_image_bytes,
-    #         Bucket=bucket_name,
-    #         Key=labeled_image_name,
-    #         ACL='public-read')  # enable public read access
-    # labeled_image_url = 'https://{}.s3.amazonaws.com/{}'.format(
-    #     bucket_name,
-    #     labeled_image_name)
+    s3_client = boto3.client('s3')
+    response = s3_client.put_object(
+            Body=labeled_image_bytes,
+            Bucket=bucket_name,
+            Key=labeled_image_name,
+            ACL='public-read')  # enable public read access
+    labeled_image_url = 'https://{}.s3.amazonaws.com/{}'.format(
+        bucket_name,
+        labeled_image_name)
     
-    # if response['ResponseMetadata']['HTTPStatusCode'] != 200:
-    #     statusCode = 500
-    #     message = 'Unable to upload labeled image to S3'
-    labeled_image_url = ''
+    if response['ResponseMetadata']['HTTPStatusCode'] != 200:
+        statusCode = 500
+        message = 'Unable to upload labeled image to S3'
 
     # -- Replace this with storage into DynamoDB
     label_names = []
@@ -178,15 +177,8 @@ def share_image(event):
                              lat=dynamo_meta['Latitude'],
                              long=dynamo_meta['Longitude'],
                              imgSrc=dynamo_meta['ImageURL'],
+                             labeledImgSrc=dynamo_meta['LabeledImageURL'],
                              detectedLabels=dynamo_meta['Labels'])
-
-    # dynamo.add_item(dynamo_meta)
-    json_str = json.dumps(dynamo_meta)
-    json_name = str(epoch_time) + '.json'
-    response = s3_client.put_object(
-        Body=json_str,
-        Bucket=bucket_name,
-        Key=json_name)
 
     if response['ResponseMetadata']['HTTPStatusCode'] != 200:
         statusCode = 500
@@ -295,10 +287,10 @@ if __name__ == '__main__':
     # %% SETUP
     BUCKET_NAME = 'ktopolovbucket'
     stage_url = 'https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev'
-    
+
     # Local files
     local_image_file = 'data/dashcams-2048px-20.jpg'
-    test_method = 'api'  # 'local', 'api'
+    test_method = 'local'  # 'local', 'api'
 
     # %% ShareImage Test
     print('\n===== ShareImage {} TEST ====='.format(test_method))
@@ -314,7 +306,7 @@ if __name__ == '__main__':
                  # 'EpochTime': time.time(),
                  'EpochTime': 1616938736.101607,  # use this so i dont make 50 files
                  'ImageBase64': image_base64}
-    
+
     # Send request
     if test_method == 'local':
         share_image_response = share_image(event=http_body)
@@ -328,34 +320,6 @@ if __name__ == '__main__':
     dynamo_dict = json.loads(share_image_response['dynamoMeta'])
     print(dynamo_dict['ImageURL'])
 
-    # %% GetJson Test
-    print('\n===== GetJson {} TEST ====='.format(test_method))
-    
-    # JSON named with epoch_time.json()
-    image_url = dynamo_dict['ImageURL']
-    image_name = image_url.split('/')[-1]
-    epoch_time = image_name.replace('original_', '').replace('.jpg', '')
-    json_name = epoch_time + '.json'
-    
-    # Setup Query ?key&value pairs for HTTP request
-    params = {'fileName': json_name,
-              'bucketName': BUCKET_NAME}
-
-    # Send request
-    if test_method == 'local':
-        json_response = get_json_s3(event=params)
-    elif test_method == 'api':
-        request_url = stage_url + '/get-json-s3'
-        json_response = requests.get(url=request_url, params=params).json()
-    else:
-        raise ValueError('Unknown test_method {}'.format(test_method))
-    
-    print('\tstatusCode: {}'.format(json_response['statusCode']))
-    
-    json_body = json_response['body']
-    labels = json_body['Labels']
-    print('\t{} Labels Found'.format(len(labels)))
-    
     # %% GetImage Test
     print('\n===== GetImage Local TEST =====')
     orig_image_url = dynamo_dict['ImageURL'].split('/')[-1]
@@ -363,22 +327,22 @@ if __name__ == '__main__':
 
     orig_params = {'bucketName': BUCKET_NAME,
                    'imageName': orig_image_url}
-    # labeled_params = {'bucketName': BUCKET_NAME,
-    #                   'imageName': labeled_image_url}
+    labeled_params = {'bucketName': BUCKET_NAME,
+                      'imageName': labeled_image_url}
 
     # Send request
     if test_method == 'local':
         orig_image_response = get_image_s3(http_request=orig_params)
-        # labeled_image_response = get_image_s3(http_request=labeled_params)
+        labeled_image_response = get_image_s3(http_request=labeled_params)
         
     elif test_method == 'api':
         request_url = stage_url + '/get-image-s3'
         orig_image_response = requests.get(
             url=request_url,
             params=orig_params).json()
-        # labeled_image_response = requests.get(
-        #     url=request_url,
-        #     params=labeled_params).json()
+        labeled_image_response = requests.get(
+            url=request_url,
+            params=labeled_params).json()
     else:
         raise ValueError('Unknown test_method {}'.format(test_method))
 
@@ -392,12 +356,12 @@ if __name__ == '__main__':
     plt.title('Original Image')
 
     # Labeled image
-    # labeled_image_b64 = labeled_image_response['imageBase64']
-    # labeled_image_bytes = base64.b64decode(labeled_image_b64)
-    # pil_label_image = Image.open(io.BytesIO(labeled_image_bytes))
-    # plt.subplot(1, 2, 2)
-    # plt.imshow(pil_label_image)
-    # plt.title('Labeled Image')
+    labeled_image_b64 = labeled_image_response['imageBase64']
+    labeled_image_bytes = base64.b64decode(labeled_image_b64)
+    pil_label_image = Image.open(io.BytesIO(labeled_image_bytes))
+    plt.subplot(1, 2, 2)
+    plt.imshow(pil_label_image)
+    plt.title('Labeled Image')
 
     # %% GrabImages Test
     print('\n===== GrabImages API TEST =====')

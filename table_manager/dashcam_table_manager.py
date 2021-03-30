@@ -74,7 +74,7 @@ class DashcamTableManager():
             }
         )
 
-    def put_new_img(self, epochTime, lat, long, imgSrc, detectedLabels,
+    def put_new_img(self, epochTime, lat, long, imgSrc, labeledImgSrc, detectedLabels,
                     humanReadableTime):
         print("Adding new entry with lat: {} \tlong:{} \tImage Source: {}".format(lat, long, imgSrc))
 
@@ -93,6 +93,7 @@ class DashcamTableManager():
                     'latitude': latitude,
                     'longitude': longitude,
                     'image_source': imgSrc,
+                    'labeled_image_source': labeledImgSrc,
                     'detected_labels': detectedLabels
                 }
             }
