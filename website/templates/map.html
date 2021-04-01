@@ -18,7 +18,7 @@
             </ul>
         </div>
     </div>
-    <div id="map" style="flex-grow: 1;">
+    <div id="map" class="map_container">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
         <script type = "text/javascript" >
         // The first parameter are the coordinates of the center of the map
@@ -31,7 +31,6 @@
         // {z}, {x} and {y} are placeholders for map tiles
         // {x} and {y} are the x/y of where you are on the map
         // {z} is the zoom level
-
         // Use unregistered if no access key for mapbox
         if (creds == '') {
             layer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -52,34 +51,36 @@
         updateMarkers({{ markers }});
         updateBoundaries();
 
+        map.addLayer(layer);
+
+        /*************************************************************************************************************
+         *  Helper functions
+         *************************************************************************************************************/
+        function apiCallMarkers() {
+            // TODO replace with API call
+            fetch('https://api.github.com/orgs/nodejs')
+            .then (response => response.json())
+            .then (data => console.log(data));
+
+        }
+
+        // Add markers from the list to the map formatted [[x1, y1], [x2, y2]....]
         function updateMarkers(markers) {
-            for (m = 0; m < markers.length; m++) {
-                if (markers[m] ) {
-                    var val = markers[m];
-                    console.log(val)
-                    markerList[m] = L.marker(val).addTo(map).bindPopup("<b>Hello world!</b><br>I am a popup.").on('click', onMarkerClick);
+            if (markers) {
+                for (m = 0; m < markers.length; m++) {
+                    if (markers[m] ) {
+                        var val = markers[m];
+                        console.log(val)
+                        markerList[m] = L.marker(val, riseOnHover=true);
+                        markerList[m].addTo(map).on('click', onMarkerClick);
+                        markerList[m].id = m;
+                    }
                 }
             }
-            return;
+            apiCallMarkers();
         }
 
-        function onMarkerClick(e) {
-            var ims = [];
-            var ims = {{ imgs | tojson }};
-
-            if (ims.length > 0) {
-                var rand = Math.round(Math.random()*ims.length);
-                var image = ims[rand];
-                if (image != undefined) {
-                    path = '{{ url_for('static', filename='images/')}}' + image;
-                    console.log(path)
-                    document.getElementById("img1").src = path;
-                }
-            }
-            $("#lat_id").text(e.latlng.lat);
-            $("#long_id").text(e.latlng.lng);
-            $("#speed_id").text(Math.random()*100);
-        }
+        // Delete any markers on the map and clear global markerList
         function deleteMarkers() {
             // TODO replace with check if in list and update list
             map.eachLayer(function(lyr){
@@ -95,6 +96,8 @@
                 }
             });
         }
+
+        // Get the boundaries of the current window
         function updateBoundaries(e) {
             var bounds = map.getBounds();
             console.log(bounds);
@@ -102,36 +105,50 @@
             sw_lng = Number.parseFloat(bounds.getSouthWest().lng).toFixed(4);
             ne_lat = Number.parseFloat(bounds.getNorthEast().lat).toFixed(4);
             ne_lng = Number.parseFloat(bounds.getNorthEast().lng).toFixed(4);
-            console.log(sw_lat);
             $("#zoom").text("Boundaries: [" + sw_lat + ", " + sw_lng + "] to [" + ne_lat + ", " + ne_lng + "]");
         }
+
+        /*************************************************************************************************************
+         *  Event based functions
+         *************************************************************************************************************/
+        // When a marker is clicked, show data from the database
+        function onMarkerClick(e) {
+            var ims = {{ imgs | tojson }};
+
+            if (ims.length > 0) {
+                var rand = Math.round(Math.random()*ims.length);
+                var image = ims[rand];
+                if (image != undefined) {
+                    path = '{{ url_for('static', filename='images/')}}' + image;
+                    console.log(path)
+                    document.getElementById("img1").src = path;
+                }
+            }
+            $("#lat_id").text(e.latlng.lat);
+            $("#long_id").text(e.latlng.lng);
+            $("#speed_id").text(Math.random()*100);
+            console.log(e.target.id);
+        }
+
+        // When a movement action ends, pull in from database and add new markers
         function onMoveEnd(e) {
             // TODO update markers from marker list from DB
             deleteMarkers();
             v1 = [42.3223 + 0.2*Math.random() - 0.1, -83.1763 + 0.2*Math.random() - 0.1];
             v2 = [42.3223 + 0.2*Math.random() - 0.1, -83.1763 + 0.2*Math.random() - 0.1];
             v3 = [42.3223 + 0.2*Math.random() - 0.1, -83.1763 + 0.2*Math.random() - 0.1];
-            //v1 = [42.4223, -83.1763 ];
-            //v2 = [42.3223 , -83.1763 ];
-            //v3 = [42.2223 , -83.1763 ];
             updateMarkers([v1, v2, v3]);
             updateBoundaries();
         }
 
-        {#function onMapClick(e) {#}
-            {#alert("You clicked the map at " + e.latlng);#}
-            {#document.getElementById("p1").innerHTML = "Last Click: " + e.latlng;#}
-        {#var popup = L.popup()#}
-        {#    .setLatLng([42.3223, -83.1763])#}
-        {#    .setContent("I am a standalone popup.")#}
-        {#    .openOn(map);#}
-        {#map.on('click', onMapClick);#}
-        {#map.on('zoomstart', onZoomStart)#}
-        {#map.on('zoomend', onZoomEnd)#}
-        map.on('movestart', deleteMarkers)
-        map.on('moveend', onMoveEnd)
-        map.addLayer(layer)
+        // When a movement action starts, delete old markers
+        function onMoveStart(e) {
+            deleteMarkers();
+        }
 
+        // Bind Events
+        map.on('movestart', onMoveStart);
+        map.on('moveend', onMoveEnd);
         </script>
     </div>
 </div>

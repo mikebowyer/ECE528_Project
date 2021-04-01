@@ -1,11 +1,22 @@
 <!doctype html>
 <html>
-  <div class="header">
-    <p><strong>Navigation:</strong> <a href="/">Home</a> <a href="/map">Map</a> <a href="/get-items">Item List</a></p>
+<div class="header">
+  <div class="w3-row w3-padding w3-black">
+    <div class="w3-col s4">
+      <a href="/" class="w3-button w3-block w3-black">HOME</a>
+    </div>
+    <div class="w3-col s4">
+      <a href="/map" class="w3-button w3-block w3-black">MAP</a>
+    </div>
+    <div class="w3-col s4">
+      <a href="/about" class="w3-button w3-block w3-black">ABOUT US</a>
+    </div>
   </div>
+</div>
   <head>
+      <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <title>Image Data Aggregation</title>
-      <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+      <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style2.css') }}">
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
        integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
        crossorigin=""/>
@@ -16,8 +27,8 @@
   </head>
   <body>
     {% block content %}{% endblock %}
+    <footer>
+        <p>University of Michigan-Dearborn - ECE528 Final Project (Steiner, Bowyer, Topolovec)</p>
+    </footer>
   </body>
-  <div class="footer">
-      <p>University of Michigan-Dearborn - ECE528 Final Project (Steiner, Bowyer, Topolovec)</p>
-  </div>
 </html>
