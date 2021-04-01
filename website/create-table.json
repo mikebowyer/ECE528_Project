@@ -1,0 +1,15 @@
+{
+    "TableName": "TestLocationMarkers",
+    "KeySchema": [
+      { "AttributeName": "image_uid", "KeyType": "HASH" },
+      { "AttributeName": "time", "KeyType": "RANGE" }
+    ],
+    "AttributeDefinitions": [
+      { "AttributeName": "image_uid", "AttributeType": "N" },
+      { "AttributeName": "time", "AttributeType": "N" }
+    ],
+    "ProvisionedThroughput": {
+      "ReadCapacityUnits": 5,
+      "WriteCapacityUnits": 5
+    }
+}

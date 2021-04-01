@@ -56,28 +56,56 @@
         /*************************************************************************************************************
          *  Helper functions
          *************************************************************************************************************/
-        function apiCallMarkers() {
-            // TODO replace with API call
-            fetch('https://api.github.com/orgs/nodejs')
-            .then (response => response.json())
-            .then (data => console.log(data));
+        function sleep(ms) {
+          return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        async function sample_data() {
+            await sleep(1000)
+            return {"Results": [{"Latitude": 42.0, "Longitude": -83.0, "EpochTime": 1617246505,
+                    "ImageURL": "https://ktopolovbucket.s3.amazonaws.com/original_1617246404.jpg",
+                    "LabeledImageURL": "https://ktopolovbucket.s3.amazonaws.com/labeled_1617246404.jpg",
+                    "humanReadableTime": "2021-04-01 03:06:50", "Labels": ["Car", "Transportation"]},
+                    {"Latitude": 42.3, "Longitude": -83.2, "EpochTime": 1617246404,
+                    "ImageURL": "https://ktopolovbucket.s3.amazonaws.com/original_1617246404.jpg",
+                    "LabeledImageURL": "https://ktopolovbucket.s3.amazonaws.com/labeled_1617246404.jpg",
+                    "humanReadableTime": "2021-04-01 03:06:44", "Labels": ["Car", "Transportation"]},
+                    {"Latitude": 42.0, "Longitude": -83.01, "EpochTime": 1617246303,
+                    "ImageURL": "https://ktopolovbucket.s3.amazonaws.com/original_1617246404.jpg",
+                    "LabeledImageURL": "https://ktopolovbucket.s3.amazonaws.com/labeled_1617246404.jpg",
+                    "humanReadableTime": "2021-04-01 03:06:40", "Labels": ["Car", "Transportation"]}]};
+        }
 
+        // function to call api and call update markers when done
+        async function apiCallMarkers() {
+            // TODO replace with API call
+            let bnds = getBoundaries();
+            //fetch('https://api.github.com/orgs/nodejs')
+            // .then (response => response.json())
+            let data = await sample_data();
+            let markers = [];
+            (data.Results).forEach(el => markers.push(el));
+            return markers;
         }
 
         // Add markers from the list to the map formatted [[x1, y1], [x2, y2]....]
         function updateMarkers(markers) {
-            if (markers) {
-                for (m = 0; m < markers.length; m++) {
-                    if (markers[m] ) {
-                        var val = markers[m];
-                        console.log(val)
-                        markerList[m] = L.marker(val, riseOnHover=true);
-                        markerList[m].addTo(map).on('click', onMarkerClick);
-                        markerList[m].id = m;
+            apiCallMarkers()
+            .then ( data => {
+                console.log(data);
+                if (data) {
+                    for (m = 0; m < data.length; m++) {
+                        if (data[m]) {
+                            var val = [data[m].Latitude, data[m].Longitude];
+                            console.log(val)
+                            markerList[m] = L.marker(val, riseOnHover = true);
+                            markerList[m].addTo(map).on('click', onMarkerClick);
+                            markerList[m].id = m;
+                            markerList[m].data = data[m];
+                        }
                     }
                 }
-            }
-            apiCallMarkers();
+            });
+
         }
 
         // Delete any markers on the map and clear global markerList
@@ -95,6 +123,15 @@
 
                 }
             });
+        }
+
+        function getBoundaries() {
+            var bounds = map.getBounds();
+            sw_lat = Number.parseFloat(bounds.getSouthWest().lat).toFixed(4);
+            sw_lng = Number.parseFloat(bounds.getSouthWest().lng).toFixed(4);
+            ne_lat = Number.parseFloat(bounds.getNorthEast().lat).toFixed(4);
+            ne_lng = Number.parseFloat(bounds.getNorthEast().lng).toFixed(4);
+            return [[sw_lat, sw_lng], [ne_lat, ne_lng]];
         }
 
         // Get the boundaries of the current window
@@ -115,18 +152,12 @@
         function onMarkerClick(e) {
             var ims = {{ imgs | tojson }};
 
-            if (ims.length > 0) {
-                var rand = Math.round(Math.random()*ims.length);
-                var image = ims[rand];
-                if (image != undefined) {
-                    path = '{{ url_for('static', filename='images/')}}' + image;
-                    console.log(path)
-                    document.getElementById("img1").src = path;
-                }
-            }
-            $("#lat_id").text(e.latlng.lat);
-            $("#long_id").text(e.latlng.lng);
+            let src_data = e.target.data;
+            $("#lat_id").text(src_data.Latitude);
+            $("#long_id").text(src_data.Longitude);
             $("#speed_id").text(Math.random()*100);
+            $("#obj_id").text(src_data.Labels)
+            document.getElementById("img1").src = e.target.data.LabeledImageURL;
             console.log(e.target.id);
         }
 
