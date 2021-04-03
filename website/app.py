@@ -29,9 +29,13 @@ def map():
 
     return render_template('map.html', credentials=creds, imgs=images, markers=markers)
 
-@app.route('/get-items')
-def get_items():
-    return str(db.get_items())
+@app.route('/api_ref')
+def api_ref():
+    return render_template('api.html')
+
+@app.route('/upload')
+def api():
+    return render_template('upload.html')
 
 @app.route('/favicon.ico')
 def favicon():
