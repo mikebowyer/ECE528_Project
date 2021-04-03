@@ -15,12 +15,21 @@ if __name__ == '__main__':
     print('\n===== Get Images in GPS Box TEST =====')
 
     # Setup PUT request HTTP body contents
-    params = {
-        "TL_Lat": 48.3,
-        "TL_Long": -83.3,
-        "BR_Lat": 41.3,
-        "BR_Long": -83.2
+    params = { #These coordiantes have dynamoDB entries in them
+        "TL_Lat": 42.396622,
+        "TL_Long": -83.402775,
+        "BR_Lat": 42.383067,
+        "BR_Long": -83.372909
     }
+
+    # params = { #These coordiantes DO NOT have dynamoDB entries in them
+    #     "TL_Lat": 42.410831,
+    #     "TL_Long": -83.413774,
+    #     "BR_Lat": 42.396622,
+    #     "BR_Long": -83.402775
+    # }
+
+
     # Send request
     request_url = stage_url + '/get-imgs-in-gps-box'
     print(request_url)

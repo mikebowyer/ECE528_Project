@@ -52,10 +52,10 @@ if __name__ == '__main__':
                 # top_left_long = input("Enter the top left bounding box corner longitude value: ")
                 # bottom_right_lat = input("Enter the bottom right bounding box corner latitude value: ")
                 # bottom_right_long = input("Enter the bottom right bounding box corner longitude value: ")
-                top_left_lat = 42.396464
-                top_left_long = -83.402775
-                bottom_right_lat = 42.382961
-                bottom_right_long = -83.372906
+                top_left_lat = 42.410831
+                top_left_long = -83.413774
+                bottom_right_lat = 42.396622
+                bottom_right_long = -83.402775
                 results = tableManager.get_imgs_in_GPS_bounds(top_left_lat, top_left_long, bottom_right_lat,
                                                               bottom_right_long)
 

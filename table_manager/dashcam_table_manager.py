@@ -205,4 +205,4 @@ class DashcamTableManager():
                 if upper_long > item['info']['longitude'] and item['info']['longitude'] > lower_long:
                     itemsInBounds.append(item)
 
-        return items
+        return itemsInBounds
