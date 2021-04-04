@@ -1,0 +1,149 @@
+<html>
+
+<head>
+    <!-- CSS can be in different file too; just provide the src -->
+    <style type="text/css">
+        .attribute {
+            font-family: "Courier New", "Lucida Console", monospace;
+            font-weight: normal;
+            font-size: 1em;
+        }
+        .attrDescription {
+            font-family: "Courier New", "Lucida Console", monospace;
+            font-size: 1.0em;
+            font-weight: normal;
+        }
+        .method {
+            font-family: "Courier New", "Lucida Console", monospace;
+            font-weight: bold;
+            font-size: 1.25em;
+        }
+        .methodDescription {
+            font-family: "Courier New", "Lucida Console", monospace;
+            font-size: 1em;
+            font-weight: normal;
+        }
+        .methodDiv{
+            background-color: #ECECEC;
+            border-style: solid;
+            border-color: darkgray;
+            margin: 10px;
+        }
+        
+        p{
+            font-size: 1.25em;
+        }
+    </style>
+    
+    <title>Crowdsourced Data API</title>
+</head>
+
+<body>
+    <p>
+        This API allows interaction with the Crowdsourced Data project. The base URL for this project is <b>https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev</b>. All methods are defined relative to this base URL.
+
+    <!-- Put all methods into divs -->
+    <div id="methods_div" class=methodDiv>
+        <ul class=method>
+            <!-- share-image -->
+            <li>
+                <i>/share-image</i>
+                <br>
+                <span class="methodDescription">Upload an image with required metadata to the Crowdsourced database.</span>
+
+                <ul class=attribute>
+                  <li>Latitude: float64
+                      <ul class=attrDescription>
+                          <li>Latitude (degrees) where the image was taken.</li>
+                      </ul>
+                  </li>
+                  <li>Longitude: float64
+                      <ul class=attrDescription>
+                          <li>Longitude (degrees) where the image was taken.</li>
+                      </ul>
+                  </li>
+                  <li>ImageBase64: string
+                      <ul class=attrDescription>
+                          <li>Image bytes encoded as a base64 string.</li>
+                      </ul>
+                  </li>
+                </ul>
+            </li>
+        </ul>
+        Response will be given in JSON format:
+        <span class="attrDescription">
+            <pre>{</pre>
+            <pre>    "statusCode": 200,</pre>
+            <pre>    "message": "Success",</pre>
+            <pre>    "dynamoMeta":</pre>
+            <pre>    {</pre>
+            <pre>        "Latitude": 20.2,</pre>
+            <pre>        "Longitude": 30.3,</pre>
+            <pre>        "EpochTime": 1617556321,</pre>
+            <pre>        "ImageURL": "https://ktopolovbucket.s3.amazonaws.com/original_1617556321.jpg",</pre>
+            <pre>        "LabeledImageURL": "https://ktopolovbucket.s3.amazonaws.com/labeled_1617556321.jpg",</pre>
+            <pre>        "humanReadableTime": "2021-04-04 17:12:01",</pre>
+            <pre>        "Labels": ["Road", "Traffic Jam"]</pre>
+            <pre>    }</pre>
+            <pre>}</pre>
+        </span>
+    </div>
+    
+    <div id="methods_div" class=methodDiv>
+        <ul class=method>
+            <!-- /get-imgs-in-gps-box -->
+            <li>
+                <i>/get-imgs-in-gps-box</i>
+                <br>
+                <span class="methodDescription">Retrieve all images in database within a given latitude-longitude box.</span>
+
+                <ul class=attribute>
+                  <li>BR_Long: float64
+                      <ul class=attrDescription>
+                          <li>Bottom right longitude (degrees) for bounding box.</li>
+                      </ul>
+                  </li>
+                  <li>BR_Lat: float64
+                      <ul class=attrDescription>
+                          <li>Bottom right latitude (degrees) for bounding box.</li>
+                      </ul>
+                  </li>
+                    <li>TL_Long: float64
+                      <ul class=attrDescription>
+                          <li>Top left longitude (degrees) for bounding box.</li>
+                      </ul>
+                  </li>
+                    <li>TL_Lat: float64
+                      <ul class=attrDescription>
+                          <li>Top left latitude (degrees) for bounding box.</li>
+                      </ul>
+                  </li>
+                </ul>
+            </li>
+        </ul>
+        Response will be given in JSON format:
+        <span class="attrDescription">
+            <pre>{</pre>
+            <pre>    "statusCode": 200,</pre>
+            <pre>    "message": "RecievedMessage: {"TL_Lat": "0.0", "TL_Long": "0.0", "BR_Lat": "180.0", "BR_Long": "180.0"}",</pre>
+            <pre>    "body": [</pre>
+            <pre>       {</pre>
+            <pre>           "info": {</pre>
+            <pre>               "labeled_image_source":"https://ktopolovbucket.s3.amazonaws.com/labeled_1617556321.jpg",</pre>
+            <pre>               "detected_labels": ["Road", "Traffic Jam",]</pre>
+            <pre>               "human_readable_time": "2021-04-04 17:12:01",</pre>
+            <pre>               "latitude": 20.2,</pre>
+            <pre>               "longitude": 30.3,</pre>
+            <pre>               "image_source": "https://ktopolovbucket.s3.amazonaws.com/original_1617556321.jpg"</pre>
+
+            <pre>           }</pre>
+            <pre>       }</pre>
+            <pre>    ]</pre>
+            <pre>}</pre>
+        </span>
+    </div>
+
+</body>
+
+
+</html>
