@@ -4,13 +4,15 @@ from botocore.exceptions import ClientError
 
 
 class DashcamTableManager():
-    def __init__(self, tableName, dynamoDB=None):
+    def __init__(self, tableName, dynamoDB_local=False):
         self.tableName = tableName
         self.table = None
 
-        # Establish DynamoDB Resource Connection
-        if not dynamoDB:
+        # Establish DynamoDB Resource Connection locally or to AWS
+        if dynamoDB_local:
             self.dynamodb = boto3.resource('dynamodb', endpoint_url="http://localhost:8000")
+        else:
+            self.dynamodb = boto3.resource('dynamodb')
 
         if not self.check_if_table_exists():
             self.create_dashcam_img_table()
@@ -72,13 +74,12 @@ class DashcamTableManager():
             }
         )
 
-    def put_new_img(self, lat, long, imgSrc, detectedLabel):
+    def put_new_img(self, epochTime, lat, long, imgSrc, labeledImgSrc, detectedLabels,
+                    humanReadableTime):
         print("Adding new entry with lat: {} \tlong:{} \tImage Source: {}".format(lat, long, imgSrc))
 
         # Preprocess & Generate new entry inputs
-        epochTime = int(time.time())
         uid = str(uuid.uuid4())
-        humanReadableTime = str(datetime.datetime.now())
         latitude = Decimal(str(lat))
         longitude = Decimal(str(long))
         returnVal = False
@@ -92,7 +93,8 @@ class DashcamTableManager():
                     'latitude': latitude,
                     'longitude': longitude,
                     'image_source': imgSrc,
-                    'detected_label': detectedLabel
+                    'labeled_image_source': labeledImgSrc,
+                    'detected_labels': detectedLabels
                 }
             }
         )
@@ -203,4 +205,4 @@ class DashcamTableManager():
                 if upper_long > item['info']['longitude'] and item['info']['longitude'] > lower_long:
                     itemsInBounds.append(item)
 
-        return items
+        return itemsInBounds

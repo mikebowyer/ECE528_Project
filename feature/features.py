@@ -4,6 +4,9 @@ Provides functionality fr feature extraction from image data stored in S3
 """
 # %% Imports
 import boto3
+import random
+from PIL import ImageDraw, Image, ImageFont
+import io
 
 # %% Functions
 def get_features(bucket_name, image_name, max_labels=5):
@@ -38,21 +41,98 @@ def get_features(bucket_name, image_name, max_labels=5):
     response = rekog_client.detect_labels(Image={'S3Object': S3_Object},
                                           MaxLabels=max_labels)
     labels = response['Labels']
+
+    # trim out parts we don't want (confidence and parents)
+    for label in labels:
+        del label['Confidence']
+        del label['Parents']
+
+        for instance in label['Instances']:
+            del instance['Confidence']        
+
     return labels
+
+def label_image(image_bytes, labels):
+    """
+    Plot an image and corresponding bounding
+    boxes of detected labels
+
+    Parameters
+    ----------
+    image_bytes : bytes
+        Image as bytes
+
+    labels : [n_label,] dict
+        Returned from api.get_json() function or from
+        Rekognition.detect_labels(). Each label has:
+            'Name': str
+                Name of the label detected
+            'Instances': [n,] list of dict
+                List of all instances found for this label. Each instance has:
+                    'BoundingBox': dict
+                        'Width': 0 <= decimal =< 1
+                        'Height': 0 <= decimal =< 1
+                        'Left': 0 <= decimal =< 1
+                        'Top': 0 <= decimal =< 1
+
+    Returns
+    -------
+    labeled_image_bytes : bytes
+        Labeled image as bytes
+    """
+    labeled_image = Image.open(io.BytesIO(image_bytes))
+
+    # Weird it gives size in this format
+    n_col, n_row = labeled_image.size
+    colors = [(int(random.uniform(0, 255)),
+               int(random.uniform(0, 255)),
+               int(random.uniform(0, 255))) for label in labels]
+
+    # Draw original image
+    d = ImageDraw.Draw(labeled_image)
+    font = ImageFont.truetype("arial.ttf", 25)
+
+    for color, label in zip(colors, labels):
+        instances = label['Instances']
+        for jj, instance in enumerate(instances):
+            bounding_box = instance['BoundingBox']
+            width = int(n_col * bounding_box['Width'])
+            height = int(n_row * bounding_box['Height'])
+            left = int(n_col * bounding_box['Left'])
+            top = int(n_row * bounding_box['Top'])
+
+            points = [(left, top),
+                      (left, top + height),
+                      (left + width, top + height),
+                      (left + width, top),
+                      (left, top)]
+
+            color = tuple(color)
+            d.line(points, fill=color, width=5)
+
+            # Write label name
+            d.text((left + 3, top + 3),
+                   label['Name'],
+                   fill=(255, 255, 255, 255),
+                   font=font)
+
+    labeled_image_bytes = io.BytesIO()
+    labeled_image.save(labeled_image_bytes, format="JPEG")
+    labeled_image_bytes = labeled_image_bytes.getvalue()
+    return labeled_image_bytes
 
 # %% Main script
 if __name__ == '__main__':
     # Create a metadata dictionary for each image. This all should
     # come from our DynamoDB database
     bucket_name = 'ktopolovbucket'
-    image_name = 'd25-12-2021-t-14-45-22.jpg'
+    image_name = 'original_1616897414.6725974.jpg'
     max_labels = 5
 
     # Extract features for each, overwriting the image_metas
     print('Begin extracting features')
     labels = get_features(bucket_name=bucket_name,
-                               image_name=image_name,
-                               max_labels=max_labels)
+                          image_name=image_name,
+                          max_labels=max_labels)
     print('Done extracting features')
     print(labels)
-    
