@@ -77,8 +77,6 @@ def share_image(event):
                 Latitude in degrees
             'Longitude': decimal
                 Longitude in degrees
-            'EpochTime': decimal
-                Time since epoch from time.time()
             'ImageBase64': str
                 Image encoded as a base64 string
 
