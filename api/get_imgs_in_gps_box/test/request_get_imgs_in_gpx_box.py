@@ -5,7 +5,7 @@ import requests
 if __name__ == '__main__':
     # %% SETUP
     BUCKET_NAME = 'ktopolovbucket'
-    stage_url = 'https://gt3l006seh.execute-api.us-east-1.amazonaws.com/deploymentStage'
+    stage_url = 'https://dy0duracgd.execute-api.us-east-1.amazonaws.com/deploymentStage'
 
     # Local files
     local_image_file = 'data/dashcams-2048px-20.jpg'
