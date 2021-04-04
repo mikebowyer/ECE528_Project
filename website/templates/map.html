@@ -84,9 +84,17 @@
         async function apiCallMarkers() {
             // TODO replace with API call
             let bnds = getBoundaries();
-            //fetch('https://api.github.com/orgs/nodejs')
+            let url = '';
+            if (bnds) {
+                url = `https://gt3l006seh.execute-api.us-east-1.amazonaws.com/deploymentStage/get-imgs-in-gps-box?
+                TL_Lat=${bnds[0][0]}&TL_Long=${bnds[0][1]}&BR_Lat=${bnds[1][0]}&BR_Long=${bnds[1][1]}`;
+            }
+            // fetch(url)
             // .then (response => response.json())
+
             let data = await sample_data();
+            // let response = fetch(url);
+            // let data = response.json();
             let markers = [];
             (data.Results).forEach(el => markers.push(el));
             return markers;

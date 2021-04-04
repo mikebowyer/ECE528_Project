@@ -1,11 +1,11 @@
 {% extends "layout.html" %}
 {% block content %}
 <h1>Upload Data</h1>
-    <form id="add">
+    <form id="add" method="POST">
         <label for="lat">Latitude:</label>
-        <input type="text" id="lat_in" name="lat_in">
+        <input type="text" id="lat_in" name="lat_in" value="42.3223" required>
         <label for="long">Longitude:</label>
-        <input type="text" id="long_in" name="long_in">
+        <input type="text" id="long_in" name="long_in" value="-83.1763" required>
         <br/>
         <br/>
       <label for="img">Select image:</label>
