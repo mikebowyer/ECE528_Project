@@ -326,34 +326,7 @@ if __name__ == '__main__':
     dynamo_dict = json.loads(share_image_response['dynamoMeta'])
     print(dynamo_dict['ImageURL'])
 
-    # %% GetJson Test
-    print('\n===== GetJson {} TEST ====='.format(test_method))
-    
-    # JSON named with epoch_time.json()
-    image_url = dynamo_dict['ImageURL']
-    image_name = image_url.split('/')[-1]
-    epoch_time = image_name.replace('original_', '').replace('.jpg', '')
-    json_name = epoch_time + '.json'
-    
-    # Setup Query ?key&value pairs for HTTP request
-    params = {'fileName': json_name,
-              'bucketName': BUCKET_NAME}
 
-    # Send request
-    if test_method == 'local':
-        json_response = get_json_s3(event=params)
-    elif test_method == 'api':
-        request_url = stage_url + '/get-json-s3'
-        json_response = requests.get(url=request_url, params=params).json()
-    else:
-        raise ValueError('Unknown test_method {}'.format(test_method))
-    
-    print('\tstatusCode: {}'.format(json_response['statusCode']))
-    
-    json_body = json_response['body']
-    labels = json_body['Labels']
-    print('\t{} Labels Found'.format(len(labels)))
-    
     # %% GetImage Test
     print('\n===== GetImage Local TEST =====')
     orig_image_url = dynamo_dict['ImageURL'].split('/')[-1]
