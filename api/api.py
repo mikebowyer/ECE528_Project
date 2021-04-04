@@ -14,7 +14,7 @@ import time
 from table_manager.dashcam_table_manager import DashcamTableManager
 import feature.features as feat
 
-# %% REQUEST FUNCTIONS
+# %% Lambda function used for share_image in AWS LAMBDA
 def share_image(event):
     """
     Put an image into S3, and stickmetadata into DynamoDB
@@ -138,50 +138,55 @@ def share_image(event):
                 'dynamoMeta': json.dumps(dynamo_meta)}
     return response
 
-
-def get_json_s3(event):
+# %% Lambda function used for "getDashcamImages" AWS LAMBDA
+def getDashcamImages(event):
     """
-    Retrieve a JSON formatted file from an S3 bucket
+    Get images from database within a GPS bounding box
 
     Parameters
     ----------
-    event : dict
-        Contains body (and Query key&val pairs if mapped)
-        for HTTP request. HTTP request requires the following
-        key&value pairs:
-
-            bucketName : str
-                Bucket name in S3 where file exists
-            fileName : str
-                Name of JSON-formatted file
+    event : dictionary
+        Contains the following:
+            TL_Lat : decimal
+                Top-left latitude (Degrees) of GPS bounding box
+            TL_Long : decimal
+                Top-left longitude (Degrees) of GPS bounding box
+            BR_Lat : decimal
+                Bottom-right latitude (Degrees) of GPS bounding box
+            BR_Long : decimal
+                Bottom-right longitude (Degrees) of GPS bounding box
 
     Returns
     -------
-    json_string : str
-        JSON-formatted string
+    response : dictionary
+        Contains the following:
+            statusCode : integer
+                200 for good, other for bad
+            message : str
+                Received message
+            body : list
+                Contains dictionary items corresponding to each found result 
     """
-    bucket_name = event['bucketName']
-    file_name = event['fileName']
+    try:
+        tl_lat = float(event['TL_Lat'])
+        tl_long = float(event['TL_Long'])
+        br_lat = float(event['BR_Lat'])
+        br_long = float(event['BR_Long'])
+    except:
+        response = {'statusCode': 400, 
+        'message': 'RecievedMessage: {}'.format(event),'body': 'Base request'}
+        return response
+        
+    table_manager = DashcamTableManager("dashcam_images")
+    results = table_manager.get_imgs_in_GPS_bounds(tl_lat, tl_long, br_lat,
+                                                              br_long)
 
-    s3 = boto3.resource('s3')
-    content_object = s3.Object(bucket_name=bucket_name,
-                               key=file_name)
-    response = content_object.get()
+    response = {'statusCode': 200, 
+        'message': 'RecievedMessage: {}'.format(event),'body': results}
+                
+    return response
 
-    json_str = response['Body'].read()
-    json_dict = json.loads(json_str)
-
-    out_dict = {
-        'statusCode': 200,
-        'bucketName': bucket_name,
-        'fileName': file_name,
-        'body': json_dict
-    }
-
-    # Decode to JSON string with
-    # response['Body'].read().decode('utf-8')
-    return out_dict
-
+# %% Lambda function used for get_image_s3 in AWS LAMBDA
 def get_image_s3(http_request):
     """
     Retrieve an image from an S3 bucket

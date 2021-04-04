@@ -62,7 +62,7 @@ def upload():
     window.update()
 
 
-# %%
+# %% CREATE UI
 window = tk.Tk()
 window.geometry("1400x500")
 
