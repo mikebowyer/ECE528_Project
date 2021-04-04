@@ -1,0 +1,12 @@
+{
+    "TL_Lat": "48.3",
+    "TL_Long": "-83.3",
+    "BR_Lat": "41.3",
+    "BR_Long": "-83.2"
+}
+
+
+Test String Query
+TL_Lat=48.3&TL_Long=-83.3&BR_Lat=41.3&BR_Long=-83.2
+
+https://dy0duracgd.execute-api.us-east-1.amazonaws.com/deploymentStage/get-imgs-in-gps-box?TL_Lat=48.3&TL_Long=-83.3&BR_Lat=41.3&BR_Long=-83.2
