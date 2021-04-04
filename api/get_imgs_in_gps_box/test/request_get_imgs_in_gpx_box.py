@@ -7,19 +7,15 @@ if __name__ == '__main__':
     BUCKET_NAME = 'ktopolovbucket'
     stage_url = 'https://dy0duracgd.execute-api.us-east-1.amazonaws.com/deploymentStage'
 
-    # Local files
-    local_image_file = 'data/dashcams-2048px-20.jpg'
-    test_method = 'local'  # 'local', 'api'
-
     # %% ShareImage Test
     print('\n===== Get Images in GPS Box TEST =====')
 
     # Setup PUT request HTTP body contents
-    params = { #These coordiantes have dynamoDB entries in them
-        "TL_Lat": 42.396622,
-        "TL_Long": -83.402775,
-        "BR_Lat": 42.383067,
-        "BR_Long": -83.372909
+    params = { #These coordinates have dynamoDB entries in them
+        "TL_Lat": 0.0,
+        "TL_Long": 0.0,
+        "BR_Lat": 180.0,
+        "BR_Long": 180.0
     }
 
     # params = { #These coordiantes DO NOT have dynamoDB entries in them
