@@ -28,7 +28,7 @@
         <script type = "text/javascript" >
         // The first parameter are the coordinates of the center of the map
         // The second parameter is the zoom level
-        var map = L.map('map').setView([42.3223, -83.1763], 11); // set to Dearborn
+        var map = L.map('map').setView([30, 40.2], 11); // set to Dearborn
         var creds = '{{ credentials }}';
         var markerList = [];
         var layer = '';
@@ -52,8 +52,9 @@
                 accessToken: creds
             }).addTo(map);
         }
-        
-        updateMarkers({{ markers }});
+
+        initMarkers = {{ markers | tojson}};
+        updateMarkers(initMarkers);
         updateBoundaries();
 
         map.addLayer(layer);
@@ -66,15 +67,15 @@
         }
         async function sample_data() {
             await sleep(1000)
-            return {"Results": [{"Latitude": 42.0, "Longitude": -83.0, "EpochTime": 1617246505,
+            return {"Results": [{"latitude": 42.0, "longitude": -83.0, "EpochTime": 1617246505,
                     "ImageURL": "https://ktopolovbucket.s3.amazonaws.com/original_1617246404.jpg",
                     "LabeledImageURL": "https://ktopolovbucket.s3.amazonaws.com/labeled_1617246404.jpg",
                     "humanReadableTime": "2021-04-01 03:06:50", "Labels": ["Car", "Transportation"]},
-                    {"Latitude": 42.3, "Longitude": -83.2, "EpochTime": 1617246404,
+                    {"latitude": 42.3, "longitude": -83.2, "EpochTime": 1617246404,
                     "ImageURL": "https://ktopolovbucket.s3.amazonaws.com/original_1617246404.jpg",
                     "LabeledImageURL": "https://ktopolovbucket.s3.amazonaws.com/labeled_1617246404.jpg",
                     "humanReadableTime": "2021-04-01 03:06:44", "Labels": ["Car", "Transportation"]},
-                    {"Latitude": 42.0, "Longitude": -83.01, "EpochTime": 1617246303,
+                    {"latitude": 42.0, "longitude": -83.01, "EpochTime": 1617246303,
                     "ImageURL": "https://ktopolovbucket.s3.amazonaws.com/original_1617246404.jpg",
                     "LabeledImageURL": "https://ktopolovbucket.s3.amazonaws.com/labeled_1617246404.jpg",
                     "humanReadableTime": "2021-04-01 03:06:40", "Labels": ["Car", "Transportation"]}]};
@@ -86,8 +87,8 @@
             let bnds = getBoundaries();
             let url = '';
             if (bnds) {
-                url = `https://gt3l006seh.execute-api.us-east-1.amazonaws.com/deploymentStage/get-imgs-in-gps-box?
-                TL_Lat=${bnds[0][0]}&TL_Long=${bnds[0][1]}&BR_Lat=${bnds[1][0]}&BR_Long=${bnds[1][1]}`;
+                //url = `https://gt3l006seh.execute-api.us-east-1.amazonaws.com/deploymentStage/get-imgs-in-gps-box?
+                //TL_Lat=${bnds[0][0]}&TL_Long=${bnds[0][1]}&BR_Lat=${bnds[1][0]}&BR_Long=${bnds[1][1]}`;
             }
             // fetch(url)
             // .then (response => response.json())
@@ -102,22 +103,37 @@
 
         // Add markers from the list to the map formatted [[x1, y1], [x2, y2]....]
         function updateMarkers(markers) {
-            apiCallMarkers()
-            .then ( data => {
-                console.log(data);
-                if (data) {
-                    for (m = 0; m < data.length; m++) {
-                        if (data[m]) {
-                            var val = [data[m].Latitude, data[m].Longitude];
-                            console.log(val)
-                            markerList[m] = L.marker(val, riseOnHover = true);
-                            markerList[m].addTo(map).on('click', onMarkerClick);
-                            markerList[m].id = m;
-                            markerList[m].data = data[m];
+            console.log("Markers:" + markers)
+            if (!markers) {
+                apiCallMarkers()
+                .then ( data => {
+                    console.log(data);
+                    if (data) {
+                        for (m = 0; m < data.length; m++) {
+                            if (data[m]) {
+                                var val = [data[m].latitude, data[m].longitude];
+                                console.log(val)
+                                markerList[m] = L.marker(val, riseOnHover = true);
+                                markerList[m].addTo(map).on('click', onMarkerClick);
+                                markerList[m].id = m;
+                                markerList[m].data = data[m];
+                            }
                         }
                     }
+                });
+            }
+            else {
+                for (m = 0; m < markers.length; m++) {
+                    if (markers[m]) {
+                        var val = [markers[m].latitude, markers[m].longitude];
+                        console.log(val)
+                        markerList[m] = L.marker(val, riseOnHover = true);
+                        markerList[m].addTo(map).on('click', onMarkerClick);
+                        markerList[m].id = m;
+                        markerList[m].markers = markers[m];
+                    }
                 }
-            });
+            }
 
         }
 
@@ -175,7 +191,7 @@
         }
 
         // When a movement action ends, pull in from database and add new markers
-        function onMoveEnd(e) {
+        function onMoveEnd(e){
             // TODO update markers from marker list from DB
             deleteMarkers();
             v1 = [42.3223 + 0.2*Math.random() - 0.1, -83.1763 + 0.2*Math.random() - 0.1];

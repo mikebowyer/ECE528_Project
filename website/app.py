@@ -1,7 +1,8 @@
 from flask import (Flask, render_template, jsonify, request, url_for, send_from_directory)
 import os
 import os.path
-import db
+from request_get_imgs_in_gpx_box import request_image_in_gps_box
+
 try:
     import config
 except ImportError:
@@ -22,8 +23,15 @@ def map():
     global creds
     images = os.listdir(os.path.join(app.static_folder, "images"))
     try:
-        markers = db.get_items()
-    except:
+        resp = request_image_in_gps_box()
+        markers = []
+        i = 0
+        for data in resp['body']:
+            markers.append(data['info'])
+        # markers = [resp['body'][0]['info']]
+        print(markers)
+    except Exception as e:
+        print(e)
         markers = ''
         pass
 
