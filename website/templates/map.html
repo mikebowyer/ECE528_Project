@@ -5,22 +5,22 @@
     <div class="left_container">
         <div class="image_and_data">
             <h1>Image Data</h1>
-            <p id="zoom">Boundaries:</p>
-            <div class="image_container">
-                <img class="resize"; id="img1"; src="/static/images/box_image.jpg"; alt="Dashcam picture">
+            <p class="initial_data"><b>Select a marker on the map to view data</b></p>
+            <p class="image_header_text show_data">Original:</p>
+            <div class="image_container show_data">
+                <img class="resize"; id="img1"; src=""; alt="Dashcam picture">
             </div>
-            <p>The information below was extracted from the AWS Rekognition service.</p>
-
-            <p><b>Latitude:</b> <samp id="lat_id"></samp></p>
-            <p><b>Longitude:</b> <samp id="long_id"></samp></p>
-            <p><b>Speed:</b> <samp id="speed_id"></samp></p>
-            <p><b>Objects Detected:</b> <samp id="obj_id"></samp></p>
-<!--            <ul>-->
-<!--                <li><b>Latitude:</b> <samp id="lat_id"></samp></li>-->
-<!--                <li><b>Longitude:</b> <samp id="long_id"></samp></li>-->
-<!--                <li><b>Speed:</b> <samp id="speed_id"></samp></li>-->
-<!--                <li><b>Objects Detected:</b> <samp id="obj_id"></samp></li>-->
-<!--            </ul>-->
+            <p class="image_header_text show_data">Labeled:</p>
+            <div class="image_container show_data">
+             <img class="resize"; id="lbl_img"; src=""; alt="Labeled dashcam picture">
+            </div>
+            <div class="show_data">
+                <p><b>UID:</b> <samp id="uid_id"></samp></p>
+                <p><b>Latitude:</b> <samp id="lat_id"></samp></p>
+                <p><b>Longitude:</b> <samp id="long_id"></samp></p>
+                <p><b>Time:</b> <samp id="time_id"></samp></p>
+                <p><b>Objects Detected:</b> <samp id="obj_id"></samp></p>
+            </div>
         </div>
     </div>
     <div id="map" class="map_container">
@@ -55,86 +55,53 @@
 
         initMarkers = {{ markers | tojson}};
         updateMarkers(initMarkers);
-        updateBoundaries();
 
         map.addLayer(layer);
 
         /*************************************************************************************************************
          *  Helper functions
          *************************************************************************************************************/
-        function sleep(ms) {
-          return new Promise(resolve => setTimeout(resolve, ms));
-        }
-        async function sample_data() {
-            await sleep(1000)
-            return {"Results": [{"latitude": 42.0, "longitude": -83.0, "EpochTime": 1617246505,
-                    "ImageURL": "https://ktopolovbucket.s3.amazonaws.com/original_1617246404.jpg",
-                    "LabeledImageURL": "https://ktopolovbucket.s3.amazonaws.com/labeled_1617246404.jpg",
-                    "humanReadableTime": "2021-04-01 03:06:50", "Labels": ["Car", "Transportation"]},
-                    {"latitude": 42.3, "longitude": -83.2, "EpochTime": 1617246404,
-                    "ImageURL": "https://ktopolovbucket.s3.amazonaws.com/original_1617246404.jpg",
-                    "LabeledImageURL": "https://ktopolovbucket.s3.amazonaws.com/labeled_1617246404.jpg",
-                    "humanReadableTime": "2021-04-01 03:06:44", "Labels": ["Car", "Transportation"]},
-                    {"latitude": 42.0, "longitude": -83.01, "EpochTime": 1617246303,
-                    "ImageURL": "https://ktopolovbucket.s3.amazonaws.com/original_1617246404.jpg",
-                    "LabeledImageURL": "https://ktopolovbucket.s3.amazonaws.com/labeled_1617246404.jpg",
-                    "humanReadableTime": "2021-04-01 03:06:40", "Labels": ["Car", "Transportation"]}]};
-        }
+        function onGetImagesSuccess(response) {
+            p = response;
+            console.log(p);
+            let markers = [];
+            for (i = 0; i < response.body.length; i++) {
+                markers.push(response.body[i]);
+            }
+            updateMarkers(markers);
 
+        }
         // function to call api and call update markers when done
         async function apiCallMarkers() {
             // TODO replace with API call
             let bnds = getBoundaries();
             let url = '';
-            if (bnds) {
-                //url = `https://gt3l006seh.execute-api.us-east-1.amazonaws.com/deploymentStage/get-imgs-in-gps-box?
-                //TL_Lat=${bnds[0][0]}&TL_Long=${bnds[0][1]}&BR_Lat=${bnds[1][0]}&BR_Long=${bnds[1][1]}`;
-            }
-            // fetch(url)
-            // .then (response => response.json())
 
-            let data = await sample_data();
-            // let response = fetch(url);
-            // let data = response.json();
-            let markers = [];
-            (data.Results).forEach(el => markers.push(el));
-            return markers;
+            url = `https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev/get-imgs-in-gps-box`;
+            ajaxObj = {
+                url: url,
+                type: 'get',
+                data: bnds,
+                success: onGetImagesSuccess,
+                error: function(err) {console.log(err)}
+            }
+            $.ajax(ajaxObj);
         }
 
         // Add markers from the list to the map formatted [[x1, y1], [x2, y2]....]
         function updateMarkers(markers) {
-            console.log("Markers:" + markers)
-            if (!markers) {
-                apiCallMarkers()
-                .then ( data => {
-                    console.log(data);
-                    if (data) {
-                        for (m = 0; m < data.length; m++) {
-                            if (data[m]) {
-                                var val = [data[m].latitude, data[m].longitude];
-                                console.log(val)
-                                markerList[m] = L.marker(val, riseOnHover = true);
-                                markerList[m].addTo(map).on('click', onMarkerClick);
-                                markerList[m].id = m;
-                                markerList[m].data = data[m];
-                            }
-                        }
-                    }
-                });
-            }
-            else {
+            if (markers) {
                 for (m = 0; m < markers.length; m++) {
                     if (markers[m]) {
-                        var val = [markers[m].latitude, markers[m].longitude];
+                        var val = [markers[m].info.latitude, markers[m].info.longitude];
                         console.log(val)
                         markerList[m] = L.marker(val, riseOnHover = true);
                         markerList[m].addTo(map).on('click', onMarkerClick);
                         markerList[m].id = m;
-                        markerList[m].markers = markers[m];
+                        markerList[m].data = markers[m];
                     }
                 }
             }
-
         }
 
         // Delete any markers on the map and clear global markerList
@@ -160,19 +127,14 @@
             sw_lng = Number.parseFloat(bounds.getSouthWest().lng).toFixed(4);
             ne_lat = Number.parseFloat(bounds.getNorthEast().lat).toFixed(4);
             ne_lng = Number.parseFloat(bounds.getNorthEast().lng).toFixed(4);
-            return [[sw_lat, sw_lng], [ne_lat, ne_lng]];
+            return {
+                TL_Lat: sw_lat,
+                TL_Long: sw_lng,
+                BR_Lat: ne_lat,
+                BR_Long: ne_lng
+            }
         }
 
-        // Get the boundaries of the current window
-        function updateBoundaries(e) {
-            var bounds = map.getBounds();
-            console.log(bounds);
-            sw_lat = Number.parseFloat(bounds.getSouthWest().lat).toFixed(4);
-            sw_lng = Number.parseFloat(bounds.getSouthWest().lng).toFixed(4);
-            ne_lat = Number.parseFloat(bounds.getNorthEast().lat).toFixed(4);
-            ne_lng = Number.parseFloat(bounds.getNorthEast().lng).toFixed(4);
-            $("#zoom").text("Boundaries: [" + sw_lat + ", " + sw_lng + "] to [" + ne_lat + ", " + ne_lng + "]");
-        }
 
         /*************************************************************************************************************
          *  Event based functions
@@ -182,23 +144,27 @@
             var ims = {{ imgs | tojson }};
 
             let src_data = e.target.data;
-            $("#lat_id").text(src_data.Latitude);
-            $("#long_id").text(src_data.Longitude);
-            $("#speed_id").text(Math.random()*100);
-            $("#obj_id").text(src_data.Labels)
-            document.getElementById("img1").src = e.target.data.LabeledImageURL;
-            console.log(e.target.id);
+            $("#uid_id").text(src_data.image_uid);
+            $("#lat_id").text(src_data.info.latitude);
+            $("#long_id").text(src_data.info.longitude);
+            $("#time_id").text(src_data.info.human_readable_time)
+            $("#obj_id").text(src_data.info.detected_labels)
+            // Image uid, human readable time, center image and add unlabeled image
+            // images within the last X minutes, labels (cars, construction barrels, emergency vehicles, bicycles)
+            // add field upload for time
+            // sequence diagram to home page
+            $("#img1").attr("src", e.target.data.info.image_source);
+            $("#lbl_img").attr("src", e.target.data.info.labeled_image_source);
+            $(".show_data").css("visibility", "visible");
+            //$(".initial_data").css("visibility", "hidden");
+            $(".initial_data").remove()
         }
 
         // When a movement action ends, pull in from database and add new markers
         function onMoveEnd(e){
             // TODO update markers from marker list from DB
             deleteMarkers();
-            v1 = [42.3223 + 0.2*Math.random() - 0.1, -83.1763 + 0.2*Math.random() - 0.1];
-            v2 = [42.3223 + 0.2*Math.random() - 0.1, -83.1763 + 0.2*Math.random() - 0.1];
-            v3 = [42.3223 + 0.2*Math.random() - 0.1, -83.1763 + 0.2*Math.random() - 0.1];
-            updateMarkers([v1, v2, v3]);
-            updateBoundaries();
+            apiCallMarkers()
         }
 
         // When a movement action starts, delete old markers

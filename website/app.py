@@ -22,13 +22,21 @@ def hello_world():
 def map():
     global creds
     images = os.listdir(os.path.join(app.static_folder, "images"))
+    test = 1
     try:
-        resp = request_image_in_gps_box()
-        markers = []
-        i = 0
-        for data in resp['body']:
-            markers.append(data['info'])
-        # markers = [resp['body'][0]['info']]
+        if test == 1:
+            markers = [{'info': {'labeled_image_source': 'https://ktopolovbucket.s3.amazonaws.com/labeled_1617555090.jpg',
+                       'detected_labels': ['Car', 'Transportation'], 'human_readable_time': '2021-04-04 16:51:30',
+                       'latitude': 30.03, 'longitude': 40.25,
+                       'image_source': 'https://ktopolovbucket.s3.amazonaws.com/original_1617555090.jpg'},
+              'image_uid': 'e7379859-b71a-4d0c-9f11-b07092d677aa', 'time': 1617555090}]
+        else:
+            resp = request_image_in_gps_box()
+            markers = []
+            i = 0
+            for data in resp['body']:
+                markers.append(data)
+            # markers = [resp['body'][0]['info']]
         print(markers)
     except Exception as e:
         print(e)
@@ -41,8 +49,16 @@ def map():
 def api_ref():
     return render_template('api.html')
 
-@app.route('/upload')
+@app.route('/upload', methods=['GET', 'POST'])
 def api():
+    if request.method == 'POST':
+
+        lat = request.form['lat_in']
+        long = request.form['long_in']
+        img = request.form['img']
+        print(lat + " " + long + " " + img)
+        error = None
+
     return render_template('upload.html')
 
 @app.route('/favicon.ico')
