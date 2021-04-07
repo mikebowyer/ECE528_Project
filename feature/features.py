@@ -52,6 +52,56 @@ def get_features(bucket_name, image_name, max_labels=5):
 
     return labels
 
+def get_custom_features(bucket_name, image_name):
+    """
+    Use custom model to detect features
+
+    Parameters
+    ----------
+    bucket_name : str
+        Name of S3 bucket
+
+    image_name : str
+        Image filename within bucket
+
+    Returns
+    -------
+    labels : list
+        Contains labels with structure:
+            'Name': str
+            'Instances': [n,] list of dict
+                List of all instances found for this label. Each instance has:
+                    'BoundingBox': dict
+                        'Width': 0 <= decimal =< 1
+                        'Height': 0 <= decimal =< 1
+                        'Left': 0 <= decimal =< 1
+                        'Top': 0 <= decimal =< 1
+    """
+    try:
+        S3_Object = {'Bucket': bucket_name, 'Name': image_name}
+        project_arn = 'arn:aws:rekognition:us-east-1:202739566786:project/StreetViewProj/version/StreetViewProj.2021-04-05T21.09.39/1617671378745'
+        rekog_client = boto3.client('rekognition')
+        response = rekog_client.detect_custom_labels(Image={'S3Object': S3_Object},
+                                                     ProjectVersionArn=project_arn)
+        labels = {}
+        for custom_label in response['CustomLabels']:
+            name = custom_label['Name']
+            bounding_box = custom_label['Geometry']['BoundingBox']
+        
+            if name in labels:
+                labels[name]['Instances'].append({'BoundingBox': bounding_box})
+            else:
+                label = {'Name': name,
+                         'Instances': [{'BoundingBox': bounding_box}]}
+                labels[name] = label
+    
+        labels = list(labels.values())
+
+    except:
+        labels = []
+
+    return labels
+
 def label_image(image_bytes, labels):
     """
     Plot an image and corresponding bounding

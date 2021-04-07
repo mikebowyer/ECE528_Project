@@ -79,11 +79,14 @@ def share_image(event):
         statusCode = 500
         message = 'Unable to upload original image to S3'
 
-    # -- Get labels
+    # Use default AWS model and custom model; combine results
     labels = feat.get_features(bucket_name=bucket_name,
                                image_name=original_image_name,
                                max_labels=2)
-
+    custom_labels = feat.get_custom_features(bucket_name=bucket_name,
+                                             image_name=original_image_name)
+    labels = labels + custom_labels
+    
     # -- Label image and store
     labeled_image_name = 'labeled_' + base_image_name
     labeled_image_bytes = feat.label_image(
