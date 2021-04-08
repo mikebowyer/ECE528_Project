@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+{% block content %}
+<h1>Upload Data</h1>
+    <form id="add" method="POST" enctype="multipart/form-data">
+        <label for="lat">Latitude:</label>
+        <input type="text" id="lat_in" name="lat_in" value="42.3223" required>
+        <label for="long">Longitude:</label>
+        <input type="text" id="long_in" name="long_in" value="-83.1763" required>
+{#        <label for="time">Time Taken:</label>#}
+{#        <input type="datetime-local" id="time" name="time" min="2000-01-01T00:00" max="2021-12-31T23:59" required>#}
+        <br/>
+        <br/>
+      <label for="img">Select image:</label>
+      <input type="file" name="file" accept="image/*" required>
+        <br/>
+        <br/>
+      <input type="submit">
+    </form>
+    <div class="upload-container">
+        <div>
+            <h3>Preview</h3>
+            <p>Below is a preview of the selected image. Press submit to upload the data.</p>
+        </div>
+
+        <div class="preview-container">
+            <img class="resize" id="showImg" src="" >
+        </div>
+    </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script type = "text/javascript">
+        let last_file = '';
+       $(function () {
+            $(":file").change(function () {
+                if (this.files && this.files[0]) {
+                    var reader = new FileReader();
+                    reader.onload = imageIsLoaded;
+                    last_file = this.files[0];
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+        });
+
+        $("#add").submit(function (event) {
+            console.log($("#up_img"));
+            var reader = new FileReader();
+            reader.onload = imageIsLoaded;
+            reader.readAsDataURL(last_file);
+            if ($("#up_img").files && $("#up_img").files[0]) {
+
+                var reader = new FileReader();
+                reader.onload = imageIsLoaded;
+                reader.readAsDataURL($("#up_img").files[0]);
+            }
+            //event.preventDefault();
+        });
+
+        function imageIsLoaded(e) {
+            $('#showImg').attr('src', e.target.result);
+        };
+    </script>
+
+{% endblock %}

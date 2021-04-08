@@ -1,6 +1,28 @@
 {% extends "layout.html" %}
 {% block content %}
-<h1>Test</h1>
-<p>This is a test page.</p>
+<div style="padding-bottom: 50px">
+    <h1>Distributed Driving Data Collection Through The Cloud</h1>
+    <h2>Overview</h2>
+    <p>This website allows you to visualize data that is uploaded through the API to assist in distributed collection of
+    driving footage. The website shows a markers indicating where data was uploaded. When selected, the image captured,
+    latitude, longitude, and objects detected will be displayed.</p>
+    <h2>Sequence Diagrams</h2>
+    <p>Below are the sequence diagrams for the functionality of the website and APIs.</p>
+    <h3>Uploading Data Using the API</h3>
+    <img style="align-content: center; max-width: 100%" src='/static/images/Image_Upload_Process.png'>
+    <h3>Viewing Data From the Database</h3>
+    <img style="align-content: center; max-width: 100%" src='/static/images/Website_Fetch_Images_Process.png'>
+    <br/>
+    <br/>
+    <br/>
+    <h2>API Information</h2>
+    <p>See the API Reference for how to upload your own data. <a href="/api_ref">API Reference</a></p>
+    <h2>About Us</h2>
+    <p>This project was created under the scope of ECE 528 Cloud Computing at the University of Michigan-Dearborn.
+        The website, API, databases, and uploader were created by Tristan Steiner, Michael Bowyer and Kenny Topolovec.
+        The cloud tools were developed under an AWS Educate account and utilize AWS services.
+    </p>
+</div>
+
 
 {% endblock %}

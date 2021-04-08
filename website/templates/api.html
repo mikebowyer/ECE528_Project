@@ -1,0 +1,229 @@
+{% extends "layout.html" %}
+{% block content %}
+<h1 id="roadway-event-estimation-based-on-dashcam-image-apis"><u>Roadway Event Estimation Based On Dashcam Image APIs</u></h1>
+<p>This page describes how to use the different APIs related to the Roadway Event Estimation Based On Dashcam Image project. There are two application programming interfaces:</p>
+<ul>
+<li>Image Upload API - API for users to upload images taken from their dashcams</li>
+<li>Uploaded Image Fetching API - API for users to fetch images uploaded from dashcams meeting GPS, timing, and label criteria</li>
+</ul>
+<p>These API allows interaction with the Crowdsourced Data project. The base URL for this project is <a href="https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev">https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev</a>. All methods are defined relative to this base URL.</p>
+<h1 id="image-upload-api"><u>Image Upload API</u></h1>
+<h3 id="purpose-of-api">Purpose of API</h3>
+<p>The purpose of this API is so users can upload an image to a Crowdsourced database. There is some required added metadata which must be included in the API call.</p>
+<h3 id="api-parameters">API Parameters</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Parameter Name</th>
+<th style="text-align:center">Parameter Description</th>
+<th style="text-align:center">Parameter Type</th>
+<th style="text-align:right">Required Parameter</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Latitude</td>
+<td style="text-align:center">Latitude (decimal degrees) where the image was taken.</td>
+<td style="text-align:center">float64</td>
+<td style="text-align:right">Yes</td>
+</tr>
+<tr>
+<td style="text-align:left">Longitude</td>
+<td style="text-align:center">Longitude (decimal degrees) where the image was taken.</td>
+<td style="text-align:center">float64</td>
+<td style="text-align:right">Yes</td>
+</tr>
+<tr>
+<td style="text-align:left">ImageBase64</td>
+<td style="text-align:center">Image bytes encoded as a base64 string.</td>
+<td style="text-align:center">string</td>
+<td style="text-align:right">Yes</td>
+</tr>
+</tbody>
+</table>
+<h3 id="example-api-call-url">Example API Call URL</h3>
+<p><a href="https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev/share-image?Latitude=48.3&amp;Longitude=-83.3&amp;ImageBase64=">https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev/share-image?Latitude=48.3&amp;Longitude=-83.3&amp;ImageBase64=</a><ImageBase64></p>
+<h3 id="response-format-and-description">Response Format and description</h3>
+<p>Here is an example response in json format which a sucessful API call will result in:</p>
+<pre><code class="language-json"><div>{
+    <span class="hljs-attr">&quot;statusCode&quot;</span>: <span class="hljs-number">200</span>,
+    <span class="hljs-attr">&quot;message&quot;</span>: <span class="hljs-string">&quot;Success&quot;</span>,
+    <span class="hljs-attr">&quot;dynamoMeta&quot;</span>:
+    {
+        <span class="hljs-attr">&quot;Latitude&quot;</span>: <span class="hljs-number">20.2</span>,
+        <span class="hljs-attr">&quot;Longitude&quot;</span>: <span class="hljs-number">30.3</span>,
+        <span class="hljs-attr">&quot;EpochTime&quot;</span>: <span class="hljs-number">1617556321</span>,
+        <span class="hljs-attr">&quot;ImageURL&quot;</span>: <span class="hljs-string">&quot;https://ktopolovbucket.s3.amazonaws.com/original_1617556321.jpg&quot;</span>,
+        <span class="hljs-attr">&quot;LabeledImageURL&quot;</span>: <span class="hljs-string">&quot;https://ktopolovbucket.s3.amazonaws.com/labeled_1617556321.jpg&quot;</span>,
+        <span class="hljs-attr">&quot;humanReadableTime&quot;</span>: <span class="hljs-string">&quot;2021-04-04 17:12:01&quot;</span>,
+        <span class="hljs-attr">&quot;Labels&quot;</span>: [<span class="hljs-string">&quot;Road&quot;</span>, <span class="hljs-string">&quot;Traffic Jam&quot;</span>]
+    }
+}
+</div></code></pre>
+<p>Here is a description of all of the items provided in the result:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Response Item</th>
+<th style="text-align:right">Item Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">statusCode</td>
+<td style="text-align:right">Response code for if API call was sucessful or failed.</td>
+</tr>
+<tr>
+<td style="text-align:left">message</td>
+<td style="text-align:right">Response string for if API call was sucessful or failed.</td>
+</tr>
+<tr>
+<td style="text-align:left">Latitude</td>
+<td style="text-align:right">Latitude (decimal degrees) which was used in API call.</td>
+</tr>
+<tr>
+<td style="text-align:left">Longitude</td>
+<td style="text-align:right">Longitude (decimal degrees) which was used in API call</td>
+</tr>
+<tr>
+<td style="text-align:left">EpochTime</td>
+<td style="text-align:right">The time at which the server recieved the image in Unix Epoch time.</td>
+</tr>
+<tr>
+<td style="text-align:left">ImageURL</td>
+<td style="text-align:right">The URL of where the original image was stored and can be viewed.</td>
+</tr>
+<tr>
+<td style="text-align:left">LabeledImageURL</td>
+<td style="text-align:right">The URL of where the image with added detected feature bounding boxes was stored and can be viewed.</td>
+</tr>
+<tr>
+<td style="text-align:left">humanReadableTime</td>
+<td style="text-align:right">The time at which the server recieved the image in a human readable format.</td>
+</tr>
+<tr>
+<td style="text-align:left">Labels</td>
+<td style="text-align:right">A list of all identified features within the image.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="uploaded-image-fetching-api"><u>Uploaded Image Fetching API</u></h1>
+<h2 id="purpose-of-api-1">Purpose of API</h2>
+<p>The purpose of this API is so users can obtain a list of uploaded images from the dashcam database with a provided criteria. The criteria which can be provided is a GPS bounding box, a freshness limit, and a detected label category. This allows users to get images within a certain geographic area, which were taken in a given recent amount of time, and have a particular detected label in them.</p>
+<h2 id="url-and-path-of-api">URL and path of API</h2>
+<p><a href="https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev/get-imgs-in-gps-box?TL_Lat=48.3&amp;TL_Long=-83.3&amp;BR_Lat=41.3&amp;BR_Long=-83.2&amp;freshness_limit=60&amp;detected_label=Car">https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev/get-imgs-in-gps-box?TL_Lat=48.3&amp;TL_Long=-83.3&amp;BR_Lat=41.3&amp;BR_Long=-83.2&amp;freshness_limit=60&amp;detected_label=Car</a></p>
+<h2 id="api-parameters-1">API Parameters</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Parameter Name</th>
+<th style="text-align:center">Parameter Description</th>
+<th style="text-align:center">Parameter Type</th>
+<th style="text-align:right">Required Parameter</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">TL_Lat</td>
+<td style="text-align:center">Top left corner of bounding boxes Latitude (decimal degrees).</td>
+<td style="text-align:center">float64</td>
+<td style="text-align:right">Yes</td>
+</tr>
+<tr>
+<td style="text-align:left">TL_Long</td>
+<td style="text-align:center">Top left corner of bounding boxes Longitude (decimal degrees).</td>
+<td style="text-align:center">float64</td>
+<td style="text-align:right">Yes</td>
+</tr>
+<tr>
+<td style="text-align:left">BR_Lat</td>
+<td style="text-align:center">Bottom right corner of bounding boxes Latitude (decimal degrees).</td>
+<td style="text-align:center">float64</td>
+<td style="text-align:right">Yes</td>
+</tr>
+<tr>
+<td style="text-align:left">BR_Long</td>
+<td style="text-align:center">Bottom right corner of bounding boxes Longitude (decimal degrees).</td>
+<td style="text-align:center">float64</td>
+<td style="text-align:right">Yes</td>
+</tr>
+<tr>
+<td style="text-align:left">freshness_limit</td>
+<td style="text-align:center">In minutes, how recently an image was uploaded to be returned in the query.</td>
+<td style="text-align:center">int32</td>
+<td style="text-align:right">No</td>
+</tr>
+<tr>
+<td style="text-align:left">detected_label</td>
+<td style="text-align:center">Filter query results of query to only include images which contain this detected feature within them.</td>
+<td style="text-align:center">string</td>
+<td style="text-align:right">No</td>
+</tr>
+</tbody>
+</table>
+<h2 id="response-format">Response Format</h2>
+<p>Below is an example response in json format which a sucessful API call will result in. It is possible for the response body to have multiple items within the body indicating that multiple images match the query criteria:</p>
+<pre><code class="language-json"><div><span class="hljs-string">&quot;statusCode&quot;</span>: <span class="hljs-number">200</span>,
+<span class="hljs-string">&quot;message&quot;</span>: <span class="hljs-string">&quot;RecievedMessage: {&quot;</span>TL_Lat<span class="hljs-string">&quot;: &quot;</span><span class="hljs-number">0.0</span><span class="hljs-string">&quot;, &quot;</span>TL_Long<span class="hljs-string">&quot;: &quot;</span><span class="hljs-number">0.0</span><span class="hljs-string">&quot;, &quot;</span>BR_Lat<span class="hljs-string">&quot;: &quot;</span><span class="hljs-number">180.0</span><span class="hljs-string">&quot;, &quot;</span>BR_Long<span class="hljs-string">&quot;: &quot;</span><span class="hljs-number">180.0</span><span class="hljs-string">&quot;}&quot;</span>,
+<span class="hljs-string">&quot;body&quot;</span>: [
+   {
+       <span class="hljs-attr">&quot;info&quot;</span>: {
+           <span class="hljs-attr">&quot;latitude&quot;</span>: <span class="hljs-number">20.2</span>,
+           <span class="hljs-attr">&quot;longitude&quot;</span>: <span class="hljs-number">30.3</span>,
+           <span class="hljs-attr">&quot;image_source&quot;</span>: <span class="hljs-string">&quot;https://ktopolovbucket.s3.amazonaws.com/original_1617556321.jpg&quot;</span>
+           <span class="hljs-string">&quot;labeled_image_source&quot;</span>:<span class="hljs-string">&quot;https://ktopolovbucket.s3.amazonaws.com/labeled_1617556321.jpg&quot;</span>,
+           <span class="hljs-attr">&quot;human_readable_time&quot;</span>: <span class="hljs-string">&quot;2021-04-04 17:12:01&quot;</span>,
+           <span class="hljs-attr">&quot;detected_labels&quot;</span>: [<span class="hljs-string">&quot;Road&quot;</span>, <span class="hljs-string">&quot;Traffic Jam&quot;</span>],
+
+       }
+   }
+]
+</div></code></pre>
+<p>Here is a description of all of the items provided in the result:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Response Item</th>
+<th style="text-align:right">Item Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">statusCode</td>
+<td style="text-align:right">Response code for if API call was sucessful or failed.</td>
+</tr>
+<tr>
+<td style="text-align:left">message</td>
+<td style="text-align:right">Contains all values of parameters used in API request call.</td>
+</tr>
+<tr>
+<td style="text-align:left">Latitude</td>
+<td style="text-align:right">Latitude (decimal degrees) associated with this uploaded image.</td>
+</tr>
+<tr>
+<td style="text-align:left">Longitude</td>
+<td style="text-align:right">Longitude (decimal degrees) associated with this uploaded image</td>
+</tr>
+<tr>
+<td style="text-align:left">image_source</td>
+<td style="text-align:right">The URL of where the original image was stored and can be viewed.</td>
+</tr>
+<tr>
+<td style="text-align:left">labeled_image_source</td>
+<td style="text-align:right">The URL of where the image with added detected feature bounding boxes was stored and can be viewed.</td>
+</tr>
+<tr>
+<td style="text-align:left">human_readable_time</td>
+<td style="text-align:right">The time at which the server recieved the image in a human readable format.</td>
+</tr>
+<tr>
+<td style="text-align:left">detected_labels</td>
+<td style="text-align:right">A list of all identified features within the image.</td>
+</tr>
+</tbody>
+</table>
+
+</body>
+<div style="padding: 25px; content: ''"></div>
+
+{% endblock %}
