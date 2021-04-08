@@ -2,11 +2,10 @@ import base64
 import json
 
 import requests
-from flask import (Flask, render_template, jsonify, flash, request, redirect, url_for, send_from_directory)
-from werkzeug.utils import secure_filename
+from flask import (Flask, render_template, flash, request, redirect, send_from_directory)
+
 import os
 import os.path
-from request_get_imgs_in_gpx_box import request_image_in_gps_box
 
 try:
     import config
@@ -18,19 +17,19 @@ creds = config.map_key if hasattr(config, 'map_key') else ""
 BUCKET_NAME = 'ktopolovbucket'
 stage_url = 'https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev'
 
-app = Flask(__name__)
+application = Flask(__name__)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 
-@app.route('/')
+@application.route('/')
 def hello_world():
     return render_template('home.html')
 
-@app.route('/map')
+@application.route('/map')
 def map():
     global creds
-    images = os.listdir(os.path.join(app.static_folder, "images"))
+    images = os.listdir(os.path.join(application.static_folder, "images"))
     test = 0
     try:
         if test == 1:
@@ -48,11 +47,11 @@ def map():
 
     return render_template('map.html', credentials=creds, imgs=images, markers=markers)
 
-@app.route('/api_ref')
+@application.route('/api_ref')
 def api_ref():
     return render_template('api.html')
 
-@app.route('/upload', methods=['GET', 'POST'])
+@application.route('/upload', methods=['GET', 'POST'])
 def upload():
     if request.method == 'POST':
 
@@ -80,10 +79,10 @@ def upload():
 
     return render_template('upload.html')
 
-@app.route('/favicon.ico')
+@application.route('/favicon.ico')
 def favicon():
-    return send_from_directory(os.path.join(app.root_path, 'static'),
+    return send_from_directory(os.path.join(application.root_path, 'static'),
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 if __name__ == '__main__':
-    app.run()
+    application.run('localhost', port=8000)

@@ -7,28 +7,28 @@
             <h2>Filter data:</h2>
             <label for="hrs" style="padding-right: 15px"><b>Show: </b></label>
                 <select name="hrs" id="hrs" style="padding-right:7px">
-                    <option value="ALL">All time</option>
-                  <option value="1">Last 1 hr</option>
-                  <option value="2">Last 2 hrs</option>
-                  <option value="4">Last 4 hrs</option>
-                  <option value="24">Last 1 day</option>
-                    <option value="48">Last 2 day</option>
-                    <option value="168">Last 1 week</option>
+                    <option value=-1>All time</option>
+                  <option value=60>Last 1 hr</option>
+                  <option value=120>Last 2 hrs</option>
+                  <option value=240>Last 4 hrs</option>
+                  <option value=1440>Last 1 day</option>
+                    <option value=2880>Last 2 day</option>
+                    <option value=10080>Last 1 week</option>
                 </select>
-            <input type="submit" name="time_filter" value="Filter">
-            <input type="submit" name="clear_time_filter" value="Clear">
+            <input type="submit" id="time_filter" name="time_filter" value="Filter">
+            <input type="submit" id="clear_time_filter" name="clear_time_filter" value="Clear">
             <br/>
             <br/>
             <label for="labels"><b>Include: </b></label>
                 <select name="labels" id="labels">
                     <option value="ALL">All labels</option>
-                  <option value="cars">Cars</option>
-                  <option value="people">People</option>
-                  <option value="construction">Construction</option>
-                  <option value="bikes">Bikes</option>
+                  <option value="Car">Cars</option>
+                  <option value="Person">People</option>
+                  <option value="Construction">Construction</option>
+                  <option value="Bicycle">Bikes</option>
                 </select>
-            <input type="submit" name="label_filter" value="Filter">
-            <input type="submit" name="clear_label_filter" value="Clear">
+            <input type="submit" id="label_filter" name="label_filter" value="Filter">
+            <input type="submit" id="clear_label_filter" name="clear_label_filter" value="Clear">
             <h2>Image Data:</h2>
             <p class="initial_data"><b>Select a marker on the map to view data</b></p>
             <p class="image_header_text show_data">Original:
@@ -57,7 +57,7 @@
         let creds = '{{ credentials }}';
         let markerList = [];
         let layer = '';
-        let time_filter = "ALL";
+        let time_filter = -1;
         let label_filter = "ALL";
 
         // {z}, {x} and {y} are placeholders for map tiles
@@ -110,8 +110,8 @@
             if (label_filter != "ALL") {
                 bnds["detected_label"] = label_filter;
             }
-            if (time_filter != "ALL") {
-                bnds["freshness_limit"] = time_filter;
+            if (time_filter > 0) {
+                bnds["freshness_limit"] = parseInt(time_filter);
             }
             let url = '';
 
@@ -133,7 +133,7 @@
                     if (markers[m]) {
                         var val = [markers[m].info.latitude, markers[m].info.longitude];
                         console.log(val)
-                        markerList[m] = L.marker(val, riseOnHover = true);
+                        markerList[m] = L.marker(val, {"riseOnHover":true});
                         markerList[m].addTo(map).on('click', onMarkerClick);
                         markerList[m].id = m;
                         markerList[m].data = markers[m];
@@ -207,11 +207,29 @@
         }
 
         function onFilterTime(e) {
-
+            time_filter = parseInt($("#hrs").val());
+            deleteMarkers();
+            apiCallMarkers();
         }
 
         function onFilterLabel(e) {
+            label_filter = $("#labels").val();
+            deleteMarkers();
+            apiCallMarkers();
+        }
 
+        function onClearTime(e) {
+            time_filter = -1;
+            $("#hrs").val(time_filter);
+            deleteMarkers();
+            apiCallMarkers();
+        }
+
+        function onClearLabel(e) {
+            label_filter = "ALL";
+            $("#labels").val(label_filter);
+            deleteMarkers();
+            apiCallMarkers();
         }
 
         // When a movement action starts, delete old markers
@@ -222,6 +240,10 @@
         // Bind Events
         map.on('movestart', onMoveStart);
         map.on('moveend', onMoveEnd);
+        $("#time_filter").bind("click", onFilterTime);
+        $("#label_filter").bind("click", onFilterLabel);
+        $("#clear_time_filter").bind("click", onClearTime);
+        $("#clear_label_filter").bind("click", onClearLabel);
         </script>
     </div>
 </div>
