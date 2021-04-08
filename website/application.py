@@ -2,7 +2,6 @@ import base64
 import json
 
 import requests
-from PIL import Image
 from flask import (Flask, render_template, jsonify, flash, request, redirect, url_for, send_from_directory)
 from werkzeug.utils import secure_filename
 import os
@@ -32,7 +31,7 @@ def hello_world():
 def map():
     global creds
     images = os.listdir(os.path.join(app.static_folder, "images"))
-    test = 1
+    test = 0
     try:
         if test == 1:
             markers = [{'info': {'labeled_image_source': 'https://ktopolovbucket.s3.amazonaws.com/labeled_1617555090.jpg',
