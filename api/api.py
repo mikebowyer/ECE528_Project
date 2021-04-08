@@ -14,6 +14,7 @@ import time
 from table_manager.dashcam_table_manager import DashcamTableManager
 import feature.features as feat
 
+
 # %% Lambda function used for share_image in AWS LAMBDA
 def share_image(event):
     """
@@ -67,10 +68,10 @@ def share_image(event):
     original_image_bytes = base64.b64decode(image_base64)
     s3_client = boto3.client('s3')
     response = s3_client.put_object(
-            Body=original_image_bytes,
-            Bucket=bucket_name,
-            Key=original_image_name,
-            ACL='public-read')  # enable public read access
+        Body=original_image_bytes,
+        Bucket=bucket_name,
+        Key=original_image_name,
+        ACL='public-read')  # enable public read access
     original_image_url = 'https://{}.s3.amazonaws.com/{}'.format(
         bucket_name,
         original_image_name)
@@ -95,14 +96,14 @@ def share_image(event):
 
     s3_client = boto3.client('s3')
     response = s3_client.put_object(
-            Body=labeled_image_bytes,
-            Bucket=bucket_name,
-            Key=labeled_image_name,
-            ACL='public-read')  # enable public read access
+        Body=labeled_image_bytes,
+        Bucket=bucket_name,
+        Key=labeled_image_name,
+        ACL='public-read')  # enable public read access
     labeled_image_url = 'https://{}.s3.amazonaws.com/{}'.format(
         bucket_name,
         labeled_image_name)
-    
+
     if response['ResponseMetadata']['HTTPStatusCode'] != 200:
         statusCode = 500
         message = 'Unable to upload labeled image to S3'
@@ -141,6 +142,7 @@ def share_image(event):
                 'dynamoMeta': json.dumps(dynamo_meta)}
     return response
 
+
 # %% Lambda function used for "getDashcamImages" AWS LAMBDA
 def getDashcamImages(event):
     """
@@ -158,6 +160,10 @@ def getDashcamImages(event):
                 Bottom-right latitude (Degrees) of GPS bounding box
             BR_Long : decimal
                 Bottom-right longitude (Degrees) of GPS bounding box
+            freshness_limit : string (optional)
+                Specifies how fresh results from this query must be so old data isn't included
+            detected_label : string (optional)
+                Filter to only include results which include this detected label in the image
 
     Returns
     -------
@@ -175,19 +181,27 @@ def getDashcamImages(event):
         tl_long = float(event['TL_Long'])
         br_lat = float(event['BR_Lat'])
         br_long = float(event['BR_Long'])
-    except:
-        response = {'statusCode': 400, 
-        'message': 'RecievedMessage: {}'.format(event),'body': 'Base request'}
-        return response
-        
-    table_manager = DashcamTableManager("dashcam_images")
-    results = table_manager.get_imgs_in_GPS_bounds(tl_lat, tl_long, br_lat,
-                                                              br_long)
+        freshness_limit = int(0)
+        detected_label = ""
 
-    response = {'statusCode': 200, 
-        'message': 'RecievedMessage: {}'.format(event),'body': results}
-                
+        if 'freshness_limit' in event:
+            if event['freshness_limit'] != "":
+                freshness_limit = int(event['freshness_limit'])
+        if 'detected_label' in event:
+            detected_label = event['detected_label']
+    except:
+        print("ERROR")
+        response = {'statusCode': 400, 'message': 'RecievedMessage: {}'.format(event), 'body': 'Base request'}
+        return response
+
+    table_manager = DashcamTableManager("dashcam_images")
+    results = table_manager.get_imgs_in_GPS_bounds(tl_lat, tl_long, br_lat, br_long, freshness_limit, detected_label)
+
+    response = {'statusCode': 200,
+                'message': 'RecievedMessage: {}'.format(event), 'body': results}
+
     return response
+
 
 # %% Lambda function used for get_image_s3 in AWS LAMBDA
 def get_image_s3(http_request):
@@ -228,7 +242,7 @@ def get_image_s3(http_request):
     obj.download_fileobj(file_stream)
     image_bytes = file_stream.getvalue()
     image_base64 = base64.b64encode(image_bytes)
-    
+
     response = {'bucketName': bucketname,
                 'imageName': imagename,
                 'imageBase64': image_base64,
