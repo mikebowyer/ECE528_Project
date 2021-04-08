@@ -1,15 +1,17 @@
 {% extends "layout.html" %}
 {% block content %}
 <h1>Upload Data</h1>
-    <form id="add" method="POST">
+    <form id="add" method="POST" enctype="multipart/form-data">
         <label for="lat">Latitude:</label>
         <input type="text" id="lat_in" name="lat_in" value="42.3223" required>
         <label for="long">Longitude:</label>
         <input type="text" id="long_in" name="long_in" value="-83.1763" required>
+{#        <label for="time">Time Taken:</label>#}
+{#        <input type="datetime-local" id="time" name="time" min="2000-01-01T00:00" max="2021-12-31T23:59" required>#}
         <br/>
         <br/>
       <label for="img">Select image:</label>
-      <input type="file" id="up_img" name="img" accept="image/*">
+      <input type="file" name="file" accept="image/*" required>
         <br/>
         <br/>
       <input type="submit">
@@ -39,9 +41,6 @@
         });
 
         $("#add").submit(function (event) {
-            list_item = document.createElement(tagname='option');
-            list_item.innerHTML = $('input[type=file]').val().split('\\').pop();
-            $('#lb1').append(list_item);
             console.log($("#up_img"));
             var reader = new FileReader();
             reader.onload = imageIsLoaded;

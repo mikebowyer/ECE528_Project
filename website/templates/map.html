@@ -4,16 +4,41 @@
 <div class="container">
     <div class="left_container">
         <div class="image_and_data">
-            <h1>Image Data</h1>
+            <h2>Filter data:</h2>
+            <label for="hrs" style="padding-right: 15px"><b>Show: </b></label>
+                <select name="hrs" id="hrs" style="padding-right:7px">
+                    <option value="ALL">All time</option>
+                  <option value="1">Last 1 hr</option>
+                  <option value="2">Last 2 hrs</option>
+                  <option value="4">Last 4 hrs</option>
+                  <option value="24">Last 1 day</option>
+                    <option value="48">Last 2 day</option>
+                    <option value="168">Last 1 week</option>
+                </select>
+            <input type="submit" name="time_filter" value="Filter">
+            <input type="submit" name="clear_time_filter" value="Clear">
+            <br/>
+            <br/>
+            <label for="labels"><b>Include: </b></label>
+                <select name="labels" id="labels">
+                    <option value="ALL">All labels</option>
+                  <option value="cars">Cars</option>
+                  <option value="people">People</option>
+                  <option value="construction">Construction</option>
+                  <option value="bikes">Bikes</option>
+                </select>
+            <input type="submit" name="label_filter" value="Filter">
+            <input type="submit" name="clear_label_filter" value="Clear">
+            <h2>Image Data:</h2>
             <p class="initial_data"><b>Select a marker on the map to view data</b></p>
-            <p class="image_header_text show_data">Original:</p>
+            <p class="image_header_text show_data">Original:
             <div class="image_container show_data">
                 <img class="resize"; id="img1"; src=""; alt="Dashcam picture">
-            </div>
-            <p class="image_header_text show_data">Labeled:</p>
+            </div></p>
+            <p class="image_header_text show_data">Labeled:
             <div class="image_container show_data">
              <img class="resize"; id="lbl_img"; src=""; alt="Labeled dashcam picture">
-            </div>
+            </div></p>
             <div class="show_data">
                 <p><b>UID:</b> <samp id="uid_id"></samp></p>
                 <p><b>Latitude:</b> <samp id="lat_id"></samp></p>
@@ -28,10 +53,12 @@
         <script type = "text/javascript" >
         // The first parameter are the coordinates of the center of the map
         // The second parameter is the zoom level
-        var map = L.map('map').setView([30, 40.2], 11); // set to Dearborn
-        var creds = '{{ credentials }}';
-        var markerList = [];
-        var layer = '';
+        let map = L.map('map').setView([42.3223, -83.1763], 11); // set to Dearborn
+        let creds = '{{ credentials }}';
+        let markerList = [];
+        let layer = '';
+        let time_filter = "ALL";
+        let label_filter = "ALL";
 
         // {z}, {x} and {y} are placeholders for map tiles
         // {x} and {y} are the x/y of where you are on the map
@@ -39,13 +66,13 @@
         // Use unregistered if no access key for mapbox
         if (creds == '') {
             layer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
+            maxZoom: 18,
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
         } else {
             layer = L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
                 attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-                maxZoom: 18,
+                maxZoom: 12,
                 id: 'mapbox/streets-v11',
                 tileSize: 512,
                 zoomOffset: -1,
@@ -53,8 +80,13 @@
             }).addTo(map);
         }
 
+        // If passed some initial markers, show them, otherwise do the API Call
         initMarkers = {{ markers | tojson}};
-        updateMarkers(initMarkers);
+        if (initMarkers.length > 0) {
+            updateMarkers(initMarkers);
+        } else {
+            apiCallMarkers();
+        }
 
         map.addLayer(layer);
 
@@ -75,6 +107,12 @@
         async function apiCallMarkers() {
             // TODO replace with API call
             let bnds = getBoundaries();
+            if (label_filter != "ALL") {
+                bnds["detected_label"] = label_filter;
+            }
+            if (time_filter != "ALL") {
+                bnds["freshness_limit"] = time_filter;
+            }
             let url = '';
 
             url = `https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev/get-imgs-in-gps-box`;
@@ -153,6 +191,7 @@
             // images within the last X minutes, labels (cars, construction barrels, emergency vehicles, bicycles)
             // add field upload for time
             // sequence diagram to home page
+            // Construction and Deer
             $("#img1").attr("src", e.target.data.info.image_source);
             $("#lbl_img").attr("src", e.target.data.info.labeled_image_source);
             $(".show_data").css("visibility", "visible");
@@ -165,6 +204,14 @@
             // TODO update markers from marker list from DB
             deleteMarkers();
             apiCallMarkers()
+        }
+
+        function onFilterTime(e) {
+
+        }
+
+        function onFilterLabel(e) {
+
         }
 
         // When a movement action starts, delete old markers

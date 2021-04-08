@@ -1,4 +1,10 @@
-from flask import (Flask, render_template, jsonify, request, url_for, send_from_directory)
+import base64
+import json
+
+import requests
+from PIL import Image
+from flask import (Flask, render_template, jsonify, flash, request, redirect, url_for, send_from_directory)
+from werkzeug.utils import secure_filename
 import os
 import os.path
 from request_get_imgs_in_gpx_box import request_image_in_gps_box
@@ -10,8 +16,12 @@ except ImportError:
     pass
 
 creds = config.map_key if hasattr(config, 'map_key') else ""
+BUCKET_NAME = 'ktopolovbucket'
+stage_url = 'https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev'
 
 app = Flask(__name__)
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 
 @app.route('/')
@@ -31,13 +41,7 @@ def map():
                        'image_source': 'https://ktopolovbucket.s3.amazonaws.com/original_1617555090.jpg'},
               'image_uid': 'e7379859-b71a-4d0c-9f11-b07092d677aa', 'time': 1617555090}]
         else:
-            resp = request_image_in_gps_box()
             markers = []
-            i = 0
-            for data in resp['body']:
-                markers.append(data)
-            # markers = [resp['body'][0]['info']]
-        print(markers)
     except Exception as e:
         print(e)
         markers = ''
@@ -50,14 +54,30 @@ def api_ref():
     return render_template('api.html')
 
 @app.route('/upload', methods=['GET', 'POST'])
-def api():
+def upload():
     if request.method == 'POST':
 
         lat = request.form['lat_in']
         long = request.form['long_in']
-        img = request.form['img']
-        print(lat + " " + long + " " + img)
-        error = None
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['file']
+
+        if file.filename != '' and '.' in file.filename and file.filename.split('.', 1)[1] in ALLOWED_EXTENSIONS:
+            image_bytes = file.read()
+            image_base64 = base64.b64encode(image_bytes).decode()
+
+            http_body = {'Latitude': lat,
+                         'Longitude': long,
+                         'ImageBase64': image_base64}
+
+            # Make Request
+            request_url = stage_url + '/share-image'
+            http_body_str = json.dumps(http_body)  # Must make string for put request
+            share_image_response = requests.put(url=request_url, data=http_body_str).json()
+            print(share_image_response)
 
     return render_template('upload.html')
 

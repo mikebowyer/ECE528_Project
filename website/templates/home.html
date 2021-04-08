@@ -1,11 +1,20 @@
 {% extends "layout.html" %}
 {% block content %}
-<div style="height: calc(100vh - 100px)">
+<div style="padding-bottom: 50px">
     <h1>Distributed Driving Data Collection Through The Cloud</h1>
     <h2>Overview</h2>
     <p>This website allows you to visualize data that is uploaded through the API to assist in distributed collection of
     driving footage. The website shows a markers indicating where data was uploaded. When selected, the image captured,
     latitude, longitude, and objects detected will be displayed.</p>
+    <h2>Sequence Diagrams</h2>
+    <p>Below are the sequence diagrams for the functionality of the website and APIs.</p>
+    <h3>Uploading Data Using the API</h3>
+    <img style="align-content: center" src='/static/images/Image_Upload_Process.png'>
+    <h3>Viewing Data From the Database</h3>
+    <img style="align-content: center" src='/static/images/Website_Fetch_Images_Process.png'>
+    <br/>
+    <br/>
+    <br/>
     <h2>API Information</h2>
     <p>See the API Reference for how to upload your own data. <a href="/api_ref">API Reference</a></p>
     <h2>About Us</h2>
