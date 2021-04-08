@@ -61,7 +61,6 @@ def share_image(event):
 
     # Files stored with name '<epoch_time>.<ext>'
     epoch_time = int(time.time())
-    epoch_time = epoch_time - 4 * 60 * 60
     base_image_name = '{}.jpg'.format(epoch_time)
 
     # -- Upload original image
@@ -121,7 +120,7 @@ def share_image(event):
                    'EpochTime': epoch_time,
                    'ImageURL': original_image_url,
                    'LabeledImageURL': labeled_image_url,
-                   'humanReadableTime': human_readable_time,
+                   'humanReadableTime': human_readable_time - 4 * 60 * 60,  # get in our timezone
                    'Labels': label_names}
 
     TableManager = DashcamTableManager("dashcam_images")
