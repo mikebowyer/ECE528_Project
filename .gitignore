@@ -1,3 +1,4 @@
 website/config.py
 */__pycache__/
 credentials.txt
+*/venv/*
