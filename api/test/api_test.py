@@ -16,7 +16,9 @@ BUCKET_NAME = 'ktopolovbucket'
 stage_url = 'https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev'
 
 # Local files
-local_image_file = 'data/dashcams-2048px-20.jpg'
+# local_image_file = 'data/dashcams-2048px-20.jpg'
+local_image_file = 'C:/Users/ktopo/Desktop/School/Courses/Masters/ECE 528 - Cloud Computing/project/data/construction/BQ44GBLRMVHJNFO5UICX3O5SBI.jpg'
+# local_image_file = 'C:/Users/ktopo/Desktop/School/Courses/Masters/ECE 528 - Cloud Computing/project/data/deer_crossing/hqdefault.jpg'
 
 # %% 1) ShareImage Test
 # Test name
@@ -47,7 +49,6 @@ print('\n===== GetImage Local TEST =====')
 # Setup inputs
 orig_image_url = dynamo_dict['ImageURL'].split('/')[-1]
 labeled_image_url = dynamo_dict['LabeledImageURL'].split('/')[-1]
-
 orig_params = {'bucketName': BUCKET_NAME,
                'imageName': orig_image_url}
 labeled_params = {'bucketName': BUCKET_NAME,

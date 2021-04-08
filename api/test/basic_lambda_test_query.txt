@@ -29,5 +29,7 @@ TL_Lat=48.3&TL_Long=-83.3&BR_Lat=41.3&BR_Long=-83.2
 
 
 *** SAMPLE REQUEST URLS ***
-1) /get-imgs-in-gps-box
+1) /get-imgs-in-gps-box WITHOUT freshness & detection label
 https://dy0duracgd.execute-api.us-east-1.amazonaws.com/deploymentStage/get-imgs-in-gps-box?TL_Lat=48.3&TL_Long=-83.3&BR_Lat=41.3&BR_Long=-83.2
+2) /get-imgs-in-gps-box WITH freshness & detection label
+https://dy0duracgd.execute-api.us-east-1.amazonaws.com/deploymentStage/get-imgs-in-gps-box?TL_Lat=40&TL_Long=-80&BR_Lat=45&BR_Long=-85&freshness_limit=4320&detected_label=Car

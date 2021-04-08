@@ -1,23 +1,27 @@
 @startuml
 title Image Upload Process
 
-actor       Dashcam_Owner
-boundary    Image_Upload_API
-control     Lambda_Upload_Function
-control     AWS_Rekognition
-database    AWS_S3
-control     DynamoDB_BackEnd
-database    AWS_DynamoDB
+actor       Dashcam_Owner 
+entity      Dashcam_Application
+entity      "Website" as Website << AWS Elastic Beanstalk>>
+boundary    "Upload Image API" as Image_Upload_API << AWS API Gateway >>
+control     "Image Upload Function" as Lambda_Upload_Function << AWS Lambda Function >>
+control     "Image Feature Detection" as AWS_Rekognition << AWS Rekognition >>
+database    "Image Storage" as AWS_S3 << AWS S3 >>
+database    "Metadata Storage" as AWS_DynamoDB << AWS DynamoDB >>
 
-Dashcam_Owner -> Image_Upload_API: {Image, Latitude, Longitude}
+Dashcam_Owner -> Dashcam_Application: Start Dashcam Upload Application
+Dashcam_Application -> Image_Upload_API: {Image, Latitude, Longitude}
+Dashcam_Owner -> Website: Upload Image Using GUI
+Website -> Image_Upload_API: {Image, Latitude, Longitude}
 Image_Upload_API -> Lambda_Upload_Function: {Image, Latitude, Longitude}
+Lambda_Upload_Function --> AWS_S3: {Image}
+Lambda_Upload_Function <-- AWS_S3: {URL to Image}
 Lambda_Upload_Function --> AWS_Rekognition: {Image}
 AWS_Rekognition --> AWS_Rekognition: Detect Contents of Image
-AWS_Rekognition --> Lambda_Upload_Function: {Bounding Box, Label}
+AWS_Rekognition --> Lambda_Upload_Function: {Bounding Box, Labels}
 Lambda_Upload_Function --> AWS_S3: {Image with bounding box}
-Lambda_Upload_Function <-- AWS_S3: {URL to Image}
-Lambda_Upload_Function --> DynamoDB_BackEnd: {Image URL, Latitude, Longitude, Label}
-DynamoDB_BackEnd --> AWS_DynamoDB: Create new table entry
-
+Lambda_Upload_Function <-- AWS_S3: {URL to Image with bounding box}
+Lambda_Upload_Function --> AWS_DynamoDB: {Upload Time, Original Image URL, Labeled Image URL, Latitude, Longitude, [Features Detected in Image]}
 
 @enduml
