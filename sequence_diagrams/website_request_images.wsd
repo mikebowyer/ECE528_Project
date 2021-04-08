@@ -2,22 +2,22 @@
 title Website Fetch Images Process
 
 actor       Website_User
-entity      Dashcam_Image_Browsing_Website
-boundary    Image_Fetch_API
-
-control     Lambda_Fetch_Function
-control     DynamoDB_BackEnd
-database    AWS_DynamoDB
+entity      "Website" as Dashcam_Image_Browsing_Website << AWS Elastic Beanstalk>>
+boundary    "Fetch Images API" as Image_Fetch_API << AWS API Gateway >>
+control     "Fetch Image Query Function" as Lambda_Fetch_Function << AWS Lambda Function >>
+database    "Metadata Storage" as AWS_DynamoDB << AWS DynamoDB >>
+database    "Image Storage" as AWS_S3 << AWS S3 >>
 
 Website_User --> Dashcam_Image_Browsing_Website: User scrolls/zooms on map
-Dashcam_Image_Browsing_Website --> Image_Fetch_API: {GPS Bounding Box, Category}
-Image_Fetch_API --> Lambda_Fetch_Function: {GPS Bounding Box, Category}
-Lambda_Fetch_Function --> DynamoDB_BackEnd: {GPS Bounding Box, Category}
-DynamoDB_BackEnd --> DynamoDB_BackEnd: Prepare query request
-DynamoDB_BackEnd --> AWS_DynamoDB: Table query for images within coordinates
-AWS_DynamoDB --> DynamoDB_BackEnd: [{image URL, Latitude, Longitude}]
-DynamoDB_BackEnd --> Lambda_Fetch_Function: [{image URL, Latitude, Longitude}]
-Lambda_Fetch_Function --> Dashcam_Image_Browsing_Website: [{image URL, Latitude, Longitude}]
+Dashcam_Image_Browsing_Website --> Image_Fetch_API: {GPS Bounding Box, Desired Image Features, Freshness}
+Image_Fetch_API --> Lambda_Fetch_Function: {GPS Bounding Box, Desired Image Features, Freshness}
+Lambda_Fetch_Function --> AWS_DynamoDB: Query Database for images in GPS Bounding box with Desired features and within freshness limits
+AWS_DynamoDB --> Lambda_Fetch_Function: [{Upload Time, Original Image URL, Labeled Image URL, Latitude, Longitude, [Features Detected in Image]}]
+Lambda_Fetch_Function --> Image_Fetch_API: [{Upload Time, Original Image URL, Labeled Image URL, Latitude, Longitude, [Features Detected in Image]}]
+Image_Fetch_API --> Dashcam_Image_Browsing_Website: [{Upload Time, Original Image URL, Labeled Image URL, Latitude, Longitude, [Features Detected in Image]}]
+Dashcam_Image_Browsing_Website --> AWS_S3: Get original and labelled images
+AWS_S3 --> Dashcam_Image_Browsing_Website: Return original and labelled images
 Dashcam_Image_Browsing_Website --> Dashcam_Image_Browsing_Website: Update map with new image locations
+Dashcam_Image_Browsing_Website --> Dashcam_Image_Browsing_Website: Show images which user clicks on map
 
 @enduml
