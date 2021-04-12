@@ -23,12 +23,10 @@ class EventTableManager():
         returnVal = False
         try:
             creationTime = self.table.creation_date_time
-            # logger.info("The DashCam Images table has been found, and was originally created on {}".format(creationTime))
-            print("The DashCam Images table has been found, and was originally created on {}".format(creationTime))
+            print("The table has been found, and was originally created on {}".format(creationTime))
             returnVal = True
         except:
-            # logger.info("The DashCam Images table could not be found")
-            print("The DashCam Images table could not be found")
+            print("The table could not be found")
             returnVal = False
         return returnVal
 
@@ -50,31 +48,23 @@ class EventTableManager():
             TableName=self.tableName,
             KeySchema=[
                 {
-                    'AttributeName': 'time',
+                    'AttributeName': 'start_time',
                     'KeyType': 'HASH'  # Partition key
                 },
                 {
                     'AttributeName': 'event_uid',
                     'KeyType': 'RANGE'  # Sort key
-                },
-                {
-                    'AttributeName': 'last_update_time',
-                    'KeyType': 'RANGE'  # Sort key
                 }
             ],
             AttributeDefinitions=[
                 {
-                    'AttributeName': 'time',
+                    'AttributeName': 'start_time',
                     'AttributeType': 'N'
                 },
                 {
                     'AttributeName': 'event_uid',
                     'AttributeType': 'S'
                 },
-                {
-                    'AttributeName': 'last_update_time',
-                    'AttributeType': 'N'
-                }
             ],
             ProvisionedThroughput={
                 'ReadCapacityUnits': 10,
@@ -133,3 +123,40 @@ class EventTableManager():
             itemInBoundsAndFreshAndCorrectLabel = itemInBoundsAndFresh
 
         return itemInBoundsAndFreshAndCorrectLabel
+
+    def put_new_event(self, epochTime, lat, long, eventType, associateImg):
+        print("Adding new event with lat: {} \tlong:{} \tEvent Type: {} \nAssociated Image: {}".format(lat, long, eventType, associateImg))
+
+        # Preprocess & Generate new entry inputs
+        uid = str(uuid.uuid4())
+        latitude = Decimal(str(lat))
+        longitude = Decimal(str(long))
+        return_val = None
+        try:
+            response = self.table.put_item(
+                Item={
+                    'start_time': epochTime,
+                    'event_uid': uid,
+                    'info': {
+                        'latitude': latitude,
+                        'longitude': longitude,
+                        'event_type': str(eventType),
+                        'last_update_time': epochTime,
+                        'associated_images': [{"image_uid": associateImg['image_uid'], "time": associateImg['time']}]
+                    }
+                }
+            )
+            return_val = True
+        except:
+            print("Error putting new item")
+            return_val = False
+
+        return return_val
+
+
+    def update_events_from_new_image(self, img_info):
+        # 1) Get events within last X minutes
+        # 2) Check if img is near any existing events
+        # 3) Check if img labels match any event labels
+        # 3a) if matching, update event
+        print("Yalla Habibe")
