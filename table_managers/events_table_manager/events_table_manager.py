@@ -81,68 +81,29 @@ class EventTableManager():
             returnVal = response['Items']
         return returnVal
 
-    def get_imgs_in_GPS_bounds(self, top_left_lat, top_left_long, bottom_right_lat, bottom_right_long,
-                               freshness_limit=0,
-                               detected_label=""):
 
-        upper_lat = max(top_left_lat, bottom_right_lat)
-        lower_lat = min(top_left_lat, bottom_right_lat)
-        upper_long = max(top_left_long, bottom_right_long)
-        lower_long = min(top_left_long, bottom_right_long)
-
-        items = self.scan_table()
-
-        # Get items in GPS bounding Boxes
-        itemsInBounds = []
-        for item in items:
-            if upper_lat > item['info']['latitude'] and item['info']['latitude'] > lower_lat:
-                if upper_long > item['info']['longitude'] and item['info']['longitude'] > lower_long:
-                    itemsInBounds.append(item)
-
-        # Filter out items not uploaded within recent time window
-        itemInBoundsAndFresh = []
-        current_time = int(time.time())
-        if freshness_limit != 0:
-            for item in itemsInBounds:
-                itemCreationTime = int(item['time'])
-                itemAgeinMins = (current_time - itemCreationTime) / 60
-
-                if itemAgeinMins < freshness_limit:
-                    itemInBoundsAndFresh.append(item)
-        else:
-            itemInBoundsAndFresh = itemsInBounds
-
-        # Filter out items without the correct label
-        itemInBoundsAndFreshAndCorrectLabel = []
-        if detected_label != "":
-            for item in itemInBoundsAndFresh:
-                for label in item['info']['detected_labels']:
-                    if detected_label in label:
-                        itemInBoundsAndFreshAndCorrectLabel.append(item)
-        else:
-            itemInBoundsAndFreshAndCorrectLabel = itemInBoundsAndFresh
-
-        return itemInBoundsAndFreshAndCorrectLabel
-
-    def put_new_event(self, epochTime, lat, long, eventType, associateImg):
-        print("Adding new event with lat: {} \tlong:{} \tEvent Type: {} \nAssociated Image: {}".format(lat, long, eventType, associateImg))
-
+    def put_new_event(self, eventType, first_image_of_event):
         # Preprocess & Generate new entry inputs
         uid = str(uuid.uuid4())
-        latitude = Decimal(str(lat))
-        longitude = Decimal(str(long))
+        latitude = first_image_of_event['info']['latitude']
+        longitude = first_image_of_event['info']['longitude']
+        print("Adding new event with lat: {} \tlong:{} \tEvent Type: {} \nAssociated Image: {}".format(latitude, longitude,
+                                                                                                       eventType,
+                                                                                                       first_image_of_event))
+        associated_images = []
+        associated_images.append(first_image_of_event)
         return_val = None
         try:
             response = self.table.put_item(
                 Item={
-                    'start_time': epochTime,
+                    'start_time': first_image_of_event['time'],
                     'event_uid': uid,
                     'info': {
                         'latitude': latitude,
                         'longitude': longitude,
                         'event_type': str(eventType),
-                        'last_update_time': epochTime,
-                        'associated_images': [{"image_uid": associateImg['image_uid'], "time": associateImg['time']}]
+                        'last_update_time': first_image_of_event['time'],
+                        'associated_images': [associated_images]
                     }
                 }
             )
@@ -152,6 +113,7 @@ class EventTableManager():
             return_val = False
 
         return return_val
+
 
     def get_event(self, start_time, event_uid):
         print("Getting event with time: {} and uid: {}".format(start_time, event_uid))
@@ -175,13 +137,43 @@ class EventTableManager():
 
         return returnItem
 
-    # def associate_image_to_event(self, event_, event_uid, new_img_meta_data, associateImg):
 
+    def update_event_using_new_img(self, event_start_time, event_uid, new_image_to_associate):
+        event = self.get_event(event_start_time, event_uid)
+        returnVal = False
+        if event is None:
+            print("Unable to update specified item because it cannot be found in the table.")
+        else:
+            # Update Lat & Long:
+            event['info']['latitude'] = (event['info']['latitude'] + new_image_to_associate['info']['latitude']) / 2
+            event['info']['longitude'] = (event['info']['longitude'] + new_image_to_associate['info']['longitude']) / 2
 
+            # Update latest update time of event
+            event['info']['last_update_time'] = new_image_to_associate['time']
 
-    def update_events_from_new_image(self, img_info):
-        # 1) Get events within last X minutes
-        # 2) Check if img is near any existing events
-        # 3) Check if img labels match any event labels
-        # 3a) if matching, update event
-        print("Yalla Habibe")
+            # Update list of associated images
+            associated_images = []
+            for associated_image in event['info']['associated_images']:
+                associated_images.append(associated_image[0])
+            associated_images.append(new_image_to_associate)
+            event['info']['associated_images'] = associated_images
+
+            # Update the item!
+            response = self.table.update_item(
+                Key={
+                    'start_time': event_start_time,
+                    'event_uid': event_uid,
+                },
+                UpdateExpression="set info.latitude=:lt, info.longitude=:lg, info.last_update_time=:lu, info.associated_images=:ai",
+                ExpressionAttributeValues={
+                    ':lt': event['info']['latitude'],
+                    ':lg': event['info']['longitude'],
+                    ':lu': event['info']['last_update_time'],
+                    ':ai': event['info']['associated_images']
+                },
+                ReturnValues="UPDATED_NEW"
+            )
+            print(response)
+            returnVal = True
+        return returnVal
+

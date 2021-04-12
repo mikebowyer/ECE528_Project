@@ -14,34 +14,30 @@ if __name__ == '__main__':
     try:
         while True:
             val = input(
-                "\n### Options: ###\n\t0) Check if table exists\n\t1) Delete table\n\t2) List tables\n\t3) Put new item\n\t4) Scan table\n\t5) get image\n\t6) update image\n\t7) delete image\n\t8) get_imgs_in_GPS_bounds\n")
-            if int(val) == 0:
+                "\n### Options: ###\n\t0) Check if table exists\n\t1) Delete table\n\t2) List tables\n\t3) Put new event\n\t4) Scan table\n\t5) Get Event\n\t6) Update Event\n\t7) delete image\n\t8) get_imgs_in_GPS_bounds\n")
+            if int(val) == 0: # Check if table exists
                 event_table_manager.check_if_table_exists()
-            elif int(val) == 1:
+            elif int(val) == 1: #Delete table
                 event_table_manager.delete_table()
-            elif int(val) == 2:
+            elif int(val) == 2: # List tables
                 event_table_manager.list_tables()
-            elif int(val) == 3:
+            elif int(val) == 3: # put new event
                 # lat = input("Enter your latitude value: ")
                 # long = input("Enter your longitude value: ")
                 # source = input("Enter your image source URL: ")
                 # label = input("Enter your the detected label: ")
-                lat = 42.388540
-                long = -83.38822
-                source = "Test"
-                label = "Test"
-                epochTime = int(time.time())
-                foundImage = dashcam_img_table_manager.get_img(1618189103, '0110d98a-9951-4136-9782-44e4c8dfcfac')
+                foundImage = dashcam_img_table_manager.get_img(1618267621, '50246c19-6e2c-4053-ab01-5430fd0f067b')
                 event_type = 'Construction'
-                put_success = event_table_manager.put_new_event(epochTime, lat, long, event_type, foundImage)
-            elif int(val) == 4:
+                put_success = event_table_manager.put_new_event(event_type, foundImage)
+            elif int(val) == 4: #Scan table
                 event_table_manager.scan_table()
-            elif int(val) == 5:
-                foundItem = event_table_manager.get_event(1618190363, '741b470d-802e-4c24-a065-3b527da135a3')
+            elif int(val) == 5: #Get event
+                foundItem = event_table_manager.get_event(1618264729, '67e326ed-3bed-4158-93cf-a6edd65a4b9c')
                 print(foundItem)
             elif int(val) == 6:
-                result = event_table_manager.update_img(1616718877, '122e0e31-30d9-4563-b489-8a105ec846f0',
-                                                        lat=32.389459)  # detectedLabel='Sloth')
+                newImgToAssociate = dashcam_img_table_manager.get_img(1618267610, 'ca6aab8a-aa22-4859-8bdc-0b31a0e51eed')
+                result = event_table_manager.update_event_using_new_img(1618267621, '01cf0349-5cf3-4f78-b290-5bdbec36d869',
+                                                                        new_image_to_associate=newImgToAssociate)
                 print(result)
             elif int(val) == 7:
                 response = event_table_manager.delete_img(1616718956, '189e363c-7a50-4ed1-ad9d-1bb96409733f')

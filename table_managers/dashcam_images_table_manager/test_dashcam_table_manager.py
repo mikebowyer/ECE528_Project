@@ -8,7 +8,7 @@ from dashcam_table_manager import DashcamTableManager
 
 if __name__ == '__main__':
 
-    tableManager = DashcamTableManager("dashcam_images")
+    tableManager = DashcamTableManager("dashcam_images", True)
 
     try:
         while True:
@@ -21,12 +21,12 @@ if __name__ == '__main__':
             elif int(val) == 2:
                 tableManager.list_tables()
             elif int(val) == 3:
-                # lat = input("Enter your latitude value: ")
-                # long = input("Enter your longitude value: ")
+                lat = input("Enter your latitude value: ")
+                long = input("Enter your longitude value: ")
                 # source = input("Enter your image source URL: ")
                 # label = input("Enter your the detected label: ")
-                lat = 42.388540
-                long = -83.38822
+                # lat = 40
+                # long = -80
                 source = "Test"
                 label = "Test"
                 epochTime = int(time.time())
@@ -38,7 +38,7 @@ if __name__ == '__main__':
             elif int(val) == 4:
                 tableManager.scan_table()
             elif int(val) == 5:
-                foundItem = tableManager.get_img(1616718877, '122e0e31-30d9-4563-b489-8a105ec846f0')
+                foundItem = tableManager.get_img(1618188968, '3975509c-aa92-4862-b141-145acdde56d9')
                 print(foundItem)
             elif int(val) == 6:
                 result = tableManager.update_img(1616718877, '122e0e31-30d9-4563-b489-8a105ec846f0',

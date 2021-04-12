@@ -112,13 +112,13 @@ class DashcamTableManager():
         returnItem = None
         try:
             response = self.table.get_item(Key={'time': Decimal(time), 'image_uid': uid})
-            print("Get item Response:")
+            # print("Get item Response:")
             if "Item" in response:
-                print(response["Item"])
+                # print(response["Item"])
                 returnItem = response["Item"]
             elif "Items" in response:
                 for item in response["Items"]:
-                    print(item)
+                    # print(item)
                     returnItem = []
                     returnItem.append(item)
             else:
