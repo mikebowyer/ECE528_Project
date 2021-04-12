@@ -75,7 +75,8 @@ class EventTableManager():
     def scan_table(self):
         response = self.table.scan()
         for item in response['Items']:
-            print(item)
+            # print(item)
+            pass
         returnVal = None
         if 'Items' in response:
             returnVal = response['Items']
@@ -176,4 +177,45 @@ class EventTableManager():
             print(response)
             returnVal = True
         return returnVal
+
+    def get_events_in_GPS_bounds(self, top_left_lat, top_left_long, bottom_right_lat, bottom_right_long, freshness_limit=0,
+                               event_type=""):
+
+        upper_lat = max(top_left_lat, bottom_right_lat)
+        lower_lat = min(top_left_lat, bottom_right_lat)
+        upper_long = max(top_left_long, bottom_right_long)
+        lower_long = min(top_left_long, bottom_right_long)
+
+        events = self.scan_table()
+
+        # Get items in GPS bounding Boxes
+        eventsInBounds = []
+        for event in events:
+            if upper_lat > event['info']['latitude'] and event['info']['latitude'] > lower_lat:
+                if upper_long > event['info']['longitude'] and event['info']['longitude'] > lower_long:
+                    eventsInBounds.append(event)
+
+        # Filter out items not uploaded within recent time window
+        eventsInBoundsAndFresh = []
+        current_time = int(time.time())
+        if freshness_limit != 0:
+            for item in eventsInBounds:
+                itemCreationTime = int(item['start_time'])
+                itemAgeinMins = (current_time - itemCreationTime) / 60
+
+                if itemAgeinMins < freshness_limit:
+                    eventsInBoundsAndFresh.append(item)
+        else:
+            eventsInBoundsAndFresh = eventsInBounds
+
+        # Filter out items without the correct label
+        eventsInBoundsAndFreshAndCorrectLabel = []
+        if event_type != "":
+            for event in eventsInBoundsAndFresh:
+                if event_type in event['info']['event_type']:
+                    eventsInBoundsAndFreshAndCorrectLabel.append(item)
+        else:
+            eventsInBoundsAndFreshAndCorrectLabel = eventsInBoundsAndFresh
+
+        return eventsInBoundsAndFreshAndCorrectLabel
 

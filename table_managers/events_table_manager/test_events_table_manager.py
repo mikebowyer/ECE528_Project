@@ -40,19 +40,20 @@ if __name__ == '__main__':
                                                                         new_image_to_associate=newImgToAssociate)
                 print(result)
             elif int(val) == 7:
-                response = event_table_manager.delete_img(1616718956, '189e363c-7a50-4ed1-ad9d-1bb96409733f')
-                print(response)
+                print("Nothing right now")
             elif int(val) == 8:
                 # top_left_lat = input("Enter the top left bounding box corner latitude value: ")
                 # top_left_long = input("Enter the top left bounding box corner longitude value: ")
                 # bottom_right_lat = input("Enter the bottom right bounding box corner latitude value: ")
                 # bottom_right_long = input("Enter the bottom right bounding box corner longitude value: ")
-                top_left_lat = 42.410831
-                top_left_long = -83.413774
-                bottom_right_lat = 42.396622
-                bottom_right_long = -83.402775
-                results = event_table_manager.get_imgs_in_GPS_bounds(top_left_lat, top_left_long, bottom_right_lat,
-                                                                     bottom_right_long)
+                # bottom_right_long = input("Enter the bottom right bounding box corner longitude value: ")
+                top_left_lat = 30
+                top_left_long = -70
+                bottom_right_lat = 50
+                bottom_right_long = -80
+                results = event_table_manager.get_events_in_GPS_bounds(top_left_lat, top_left_long, bottom_right_lat,
+                                                                     bottom_right_long, 1200000, "Construction")
+                print(results)
 
     except KeyboardInterrupt:
         print('interrupted!')
