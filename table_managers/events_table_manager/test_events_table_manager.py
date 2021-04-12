@@ -37,7 +37,7 @@ if __name__ == '__main__':
             elif int(val) == 4:
                 event_table_manager.scan_table()
             elif int(val) == 5:
-                foundItem = event_table_manager.get_img(1616718877, '122e0e31-30d9-4563-b489-8a105ec846f0')
+                foundItem = event_table_manager.get_event(1618190363, '741b470d-802e-4c24-a065-3b527da135a3')
                 print(foundItem)
             elif int(val) == 6:
                 result = event_table_manager.update_img(1616718877, '122e0e31-30d9-4563-b489-8a105ec846f0',

@@ -153,6 +153,31 @@ class EventTableManager():
 
         return return_val
 
+    def get_event(self, start_time, event_uid):
+        print("Getting event with time: {} and uid: {}".format(start_time, event_uid))
+        returnItem = None
+        try:
+            response = self.table.get_item(Key={'start_time': Decimal(start_time), 'event_uid': event_uid})
+            print("Get item Response:")
+            if "Item" in response:
+                # print(response["Item"])
+                returnItem = response["Item"]
+            elif "Items" in response:
+                for item in response["Items"]:
+                    # print(item)
+                    returnItem = []
+                    returnItem.append(item)
+            else:
+                print("Get item request failed, no item with such data exists.")
+        except ClientError as e:
+            print(e.response['Error']['Message'])
+            print("Get item request failed, no item with such data exists.")
+
+        return returnItem
+
+    # def associate_image_to_event(self, event_, event_uid, new_img_meta_data, associateImg):
+
+
 
     def update_events_from_new_image(self, img_info):
         # 1) Get events within last X minutes
