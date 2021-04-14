@@ -178,7 +178,7 @@ class EventTableManager():
             returnVal = True
         return returnVal
 
-    def get_events_in_GPS_bounds(self, top_left_lat, top_left_long, bottom_right_lat, bottom_right_long, freshness_limit=0,
+    def get_events_in_GPS_bounds(self, top_left_lat, top_left_long, bottom_right_lat, bottom_right_long, freshness_limit=60,
                                event_type=""):
 
         upper_lat = max(top_left_lat, bottom_right_lat)
@@ -218,4 +218,24 @@ class EventTableManager():
             eventsInBoundsAndFreshAndCorrectLabel = eventsInBoundsAndFresh
 
         return eventsInBoundsAndFreshAndCorrectLabel
+
+    def check_if_img_matches_any_events(self, new_image_to_associate):
+        lat_to_add_to_point = 0.006557 # ~.5 mile in latitude
+        long_to_add_to_point = 0.015578 # ~.5 mile in latitude in Livonia
+
+        # Calculate GPS bounds for event
+        top_left_lat = new_image_to_associate['info']['latitude'] + Decimal(lat_to_add_to_point)
+        top_left_long = new_image_to_associate['info']['longitude'] - Decimal(long_to_add_to_point)
+        bottom_right_lat = new_image_to_associate['info']['latitude'] - Decimal(lat_to_add_to_point)
+        bottom_right_long = new_image_to_associate['info']['longitude'] + Decimal(long_to_add_to_point)
+
+        event_image_association_time_limit=60 #minutes
+
+        eventsToAssociate = []
+        for detected_label in new_image_to_associate['info']['detected_labels']:
+            events = self.get_events_in_GPS_bounds(top_left_lat, top_left_long, bottom_right_lat, bottom_right_long, event_image_association_time_limit, detected_label)
+            for event in events:
+                eventsToAssociate.append(events)
+
+        return eventsToAssociate
 
