@@ -44,20 +44,26 @@ if __name__ == '__main__':
                                                                         new_image_to_associate=newImgToAssociate)
                 print(result)
             elif int(val) == 7:
-                imgToAssociate = dashcam_img_table_manager.get_img(1618443130,
-                                                                      '2d505df4-5572-4f53-9142-b0c26a15b877')
+                imgToAssociate = dashcam_img_table_manager.get_img(1618444236,
+                                                                      '2568612a-3cde-413e-aa43-f45be947d210')
                 detected_label_associations = event_table_manager.check_if_img_matches_any_events(imgToAssociate)
                 print("Events this image should be associated with: \n {}".format(detected_label_associations))
 
-                for detected_label_association in detected_label_associations:
-                    for event_to_associate in detected_label_association:
-                        event_time = event_to_associate['start_time']
-                        event_uid = event_to_associate['event_uid']
-                        result = event_table_manager.update_event_using_new_img(event_time,
-                                                                                event_uid,
-                                                                                new_image_to_associate=imgToAssociate)
-                        if not result:
-                            raise Exception("Sorry, had problems associating image to event")
+                if not detected_label_associations:
+                    print("No events could be associated with this image, so creating new event.")
+                    event_type = 'Construction'
+                    put_success = event_table_manager.put_new_event(event_type, imgToAssociate)
+                else:
+                    print("At least one event found associated to this image, making associations.")
+                    for detected_label_association in detected_label_associations:
+                        for event_to_associate in detected_label_association:
+                            event_time = event_to_associate['start_time']
+                            event_uid = event_to_associate['event_uid']
+                            result = event_table_manager.update_event_using_new_img(event_time,
+                                                                                    event_uid,
+                                                                                    new_image_to_associate=imgToAssociate)
+                            if not result:
+                                raise Exception("Sorry, had problems associating image to event")
             elif int(val) == 8:
                 # top_left_lat = input("Enter the top left bounding box corner latitude value: ")
                 # top_left_long = input("Enter the top left bounding box corner longitude value: ")

@@ -104,7 +104,7 @@ class EventTableManager():
                         'longitude': longitude,
                         'event_type': str(eventType),
                         'last_update_time': first_image_of_event['time'],
-                        'associated_images': [associated_images]
+                        'associated_images': associated_images
                     }
                 }
             )
@@ -155,7 +155,7 @@ class EventTableManager():
             # Update list of associated images
             associated_images = []
             for associated_image in event['info']['associated_images']:
-                associated_images.append(associated_image[0])
+                associated_images.append(associated_image)
             associated_images.append(new_image_to_associate)
             event['info']['associated_images'] = associated_images
 

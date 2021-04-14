@@ -32,7 +32,7 @@ if __name__ == '__main__':
                 epochTime = int(time.time())
                 human_readable_time = time.strftime("%Y-%m-%d %H:%M:%S",
                                                     time.gmtime(epochTime))
-                detectedLabels = ['Cat', 'Car']
+                detectedLabels = ['Construction']
                 put_success = tableManager.put_new_img(epochTime, lat, long, 'ImageURL', 'LabelledImageURL',
                                                        detectedLabels, human_readable_time)
             elif int(val) == 4:
