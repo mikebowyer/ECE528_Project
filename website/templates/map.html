@@ -29,22 +29,24 @@
                 </select>
             <input type="submit" id="label_filter" name="label_filter" value="Filter">
             <input type="submit" id="clear_label_filter" name="clear_label_filter" value="Clear">
-            <h2>Image Data:</h2>
+            <h3 id="data_header">Image Data:</h3>
             <p class="initial_data"><b>Select a marker on the map to view data</b></p>
-            <p class="image_header_text show_data">Original:
-            <div class="image_container show_data">
-                <img class="resize"; id="img1"; src=""; alt="Dashcam picture">
-            </div></p>
-            <p class="image_header_text show_data">Labeled:
-            <div class="image_container show_data">
-             <img class="resize"; id="lbl_img"; src=""; alt="Labeled dashcam picture">
-            </div></p>
+            <div class="show_data" id="image_list" style="height:46vh; overflow:auto; min-height:100%">
+                <p class="image_header_text show_data">Original:
+                <div class="image_container show_data">
+                    <img class="resize"; id="img1"; src=""; alt="Dashcam picture">
+                </div></p>
+                <p class="image_header_text show_data">Labeled:
+                <div class="image_container show_data">
+                    <img class="resize"; id="lbl_img"; src=""; alt="Labeled dashcam picture">
+                </div></p>
+            </div>
             <div class="show_data">
                 <p><b>UID:</b> <samp id="uid_id"></samp></p>
                 <p><b>Latitude:</b> <samp id="lat_id"></samp></p>
                 <p><b>Longitude:</b> <samp id="long_id"></samp></p>
                 <p><b>Time:</b> <samp id="time_id"></samp></p>
-                <p><b>Objects Detected:</b> <samp id="obj_id"></samp></p>
+                <p><b id="objects_detected">Objects Detected:</b> <samp id="obj_id"></samp></p>
             </div>
         </div>
     </div>
@@ -56,10 +58,19 @@
         let map = L.map('map').setView([42.3223, -83.1763], 11); // set to Dearborn
         let creds = '{{ credentials }}';
         let markerList = [];
+        let eventList = [];
         let layer = '';
         let time_filter = -1;
         let label_filter = "ALL";
         let timeout_var = "";
+        let marker_html = '<p class="image_header_text show_data">Original:\
+                            <div class="image_container show_data">\
+                                <img class="resize"; id="img1"; src=""; alt="Dashcam picture">\
+                            </div></p>\
+                            <p class="image_header_text show_data">Labeled:\
+                            <div class="image_container show_data">\
+                                <img class="resize"; id="lbl_img"; src=""; alt="Labeled dashcam picture">\
+                            </div></p>';
 
         // {z}, {x} and {y} are placeholders for map tiles
         // {x} and {y} are the x/y of where you are on the map
@@ -91,22 +102,91 @@
 
         map.addLayer(layer);
         timeout_var = setTimeout(apiCallMarkers, 60000); // set timeout to call refresh function
-
+        if (navigator.geolocation) {
+           navigator.geolocation.getCurrentPosition(showPosition);
+        }
         /*************************************************************************************************************
          *  Helper functions
          *************************************************************************************************************/
+        function showPosition(position) {
+          let x = position.coords.latitude;
+          let y = position.coords.longitude;
+          map.setView([x, y], 11)
+        }
+        // Add events from the list to the map formatted
+        function updateEvents(events) {
+            if (events) {
+                for (let m = 0; m < events.length; m++) {
+                    if (events[m]) {
+                        if (!eventExists(events[m])) {
+                            var val = [events[m].info.latitude, events[m].info.longitude];
+                            var circle = L.circle([val[0], val[1]], {
+                                color: 'red',
+                                fillColor: '#f03',
+                                fillOpacity: 0.5,
+                                radius: 500
+                            }).addTo(map).on('click', onEventClick);
+
+                            eventList[m] = circle;
+                            eventList[m].id = m;
+                            eventList[m].data = events[m];
+                        }
+                    }
+                }
+            }
+        }
+
+        function onEventGetSuccess(response) {
+            p = response;
+            let events = [];
+            if (response && response.body) {
+                for (i = 0; i < response.body.length; i++) {
+                    events.push(response.body[i]);
+                }
+                updateEvents(events);
+            }
+        }
+
+                // function to call api and call update markers when done
+        async function apiCallEvents() {
+            let bnds = getBoundaries();
+            let url = '';
+            if (label_filter != "ALL") {
+                if (label_filter == "Deer" || label_filter == "Construction") { // TODO looks broken
+                    bnds["event_type"] = label_filter;
+                }
+                else {
+                    bnds["event_type"] = "None";
+                }
+            }
+            if (time_filter > 0) {
+                bnds["freshness_limit"] = parseInt(time_filter);
+            }
+
+            url = `https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev/get-events-in-gps-box`;
+            let ajaxObj = {
+                url: url,
+                type: 'get',
+                data: bnds,
+                success: onEventGetSuccess,
+                error: function(err) {console.log(err)}
+            }
+            $.ajax(ajaxObj);
+        }
+
         function onGetImagesSuccess(response) {
             p = response;
             let markers = [];
-            for (i = 0; i < response.body.length; i++) {
-                markers.push(response.body[i]);
+            if (response && response.body) {
+                for (i = 0; i < response.body.length; i++) {
+                    markers.push(response.body[i]);
+                }
+                updateMarkers(markers);
             }
-            updateMarkers(markers);
 
         }
         // function to call api and call update markers when done
         async function apiCallMarkers() {
-            // TODO replace with API call
             let bnds = getBoundaries();
             if (label_filter != "ALL") {
                 bnds["detected_label"] = label_filter;
@@ -136,7 +216,16 @@
             return false;
         }
 
-        // Add markers from the list to the map formatted [[x1, y1], [x2, y2]....]
+        function eventExists(e) {
+            for (let i = 0; i < eventList.length; i++) {
+                if (eventList[i].data.event_uid == e.event_uid) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Add markers from the list to the map formatted
         function updateMarkers(markers) {
             if (markers) {
                 for (let m = 0; m < markers.length; m++) {
@@ -162,15 +251,25 @@
                 minLat = Math.min(bnds.TL_Lat, bnds.BR_Lat);
                 maxLong = Math.max(bnds.TL_Long, bnds.BR_Long);
                 minLong = Math.min(bnds.TL_Long, bnds.BR_Long);
-                if (lyr instanceof L.Marker) {
+                if (lyr instanceof L.Marker || lyr instanceof L.CircleMarker) {
                     lyr_lat = lyr.getLatLng().lat;
                     lyr_long = lyr.getLatLng().lng;
                     if (lyr_lat > maxLat || lyr_lat < minLat || lyr_long > maxLong || lyr_long < minLong) {
                         // Remove from marker list as well
-                        for (var i = 0; i < markerList.length; i++) {
-                            if (Object.is(markerList[i], lyr)) {
-                                lyr.remove();
-                                markerList.splice(i, 1);
+                        if (lyr instanceof  L.Marker) {
+                            for (var i = 0; i < markerList.length; i++) {
+                                if (Object.is(markerList[i], lyr)) {
+                                    lyr.remove();
+                                    markerList.splice(i, 1);
+                                }
+                            }
+                        }
+                        if (lyr instanceof  L.CircleMarker) {
+                            for (var i = 0; i < eventList.length; i++) {
+                                if (Object.is(eventList[i], lyr)) {
+                                    lyr.remove();
+                                    eventList.splice(i, 1);
+                                }
                             }
                         }
                     }
@@ -187,7 +286,14 @@
                     for (var i = 0; i < markerList.length; i++) {
                         if (Object.is(markerList[i], lyr)) {
                             markerList.splice(i, 1);
-                            console.log("Removed")
+                        }
+                    }
+                }
+                if (lyr instanceof  L.CircleMarker) {
+                    for (var i = 0; i < eventList.length; i++) {
+                        if (Object.is(eventList[i], lyr)) {
+                            lyr.remove();
+                            eventList.splice(i, 1);
                         }
                     }
                 }
@@ -225,7 +331,6 @@
         }
 
         function resetTimeout() {
-            console.log('Here')
             clearTimeout(timeout_var);
             timeout_var = setTimeout(apiCallMarkers, 60000);
         }
@@ -234,51 +339,83 @@
          *************************************************************************************************************/
         // When a marker is clicked, show data from the database
         function onMarkerClick(e) {
-            var ims = {{ imgs | tojson }};
+            if (marker_html != "") {
+                $("#image_list").html(marker_html);
+            }
 
             let src_data = e.target.data;
+            $("#data_header").text("Image Data:");
+            $(".show_data").css("visibility", "visible");
+
             $("#uid_id").text(src_data.image_uid);
             $("#lat_id").text(src_data.info.latitude);
             $("#long_id").text(src_data.info.longitude);
-            $("#time_id").text(src_data.info.human_readable_time)
-            $("#obj_id").text(src_data.info.detected_labels)
-            // Image uid, human readable time, center image and add unlabeled image
-            // images within the last X minutes, labels (cars, construction barrels, emergency vehicles, bicycles)
-            // add field upload for time
-            // sequence diagram to home page
-            // Construction and Deer
+            $("#time_id").text(src_data.info.human_readable_time);
+            $("#obj_id").text(src_data.info.detected_labels);
             $("#img1").attr("src", e.target.data.info.image_source);
             $("#lbl_img").attr("src", e.target.data.info.labeled_image_source);
-            $(".show_data").css("visibility", "visible");
-            //$(".initial_data").css("visibility", "hidden");
+
             $(".initial_data").remove()
         }
 
+        function onEventClick(e) {
+            let src_data = e.target.data;
+            $("#data_header").text("Warning: " + src_data.info.event_type + " in area!");
+
+            $(".initial_data").remove()
+            $("#uid_id").text(src_data.event_uid);
+            $("#lat_id").text(src_data.info.latitude);
+            $("#long_id").text(src_data.info.longitude);
+            $("#image_list").html('<p class="image_header_text show_data"><p>');
+
+            let max_time_ind = 0;
+            let max_val = 100000000000000000;
+            console.log(src_data.info.associated_images)
+            for (i = 0; i < src_data.info.associated_images.length; i++) {
+                if (src_data.info.associated_images[i].time < max_val) {
+                    max_time_ind = i;
+                    max_val = src_data.info.associated_images[i].time;
+                }
+                $("#image_list").append('<div class="image_container show_data">\
+                                                <img class="resize"; src="' + src_data.info.associated_images[i].info.image_source + '"; alt="Labeled dashcam picture">\
+                                            </div><br/>');
+            }
+            $("#time_id").text(src_data.info.associated_images[max_time_ind].info.human_readable_time);
+            $("#objects_detected").text("Event Type: ");
+            $("#obj_id").text(src_data.info.event_type);
+            $(".show_data").css("visibility", "visible");
+
+        }
+
+        function apiCalls() {
+            apiCallEvents();
+            apiCallMarkers();
+        }
 
         function onFilterTime(e) {
             time_filter = parseInt($("#hrs").val());
             deleteMarkers();
-            apiCallMarkers();
+            apiCalls();
         }
 
         function onFilterLabel(e) {
             label_filter = $("#labels").val();
             deleteMarkers();
-            apiCallMarkers();
+            apiCalls();
         }
 
         function onClearTime(e) {
             time_filter = -1;
             $("#hrs").val(time_filter);
             deleteMarkers();
-            apiCallMarkers();
+            apiCalls();
         }
 
         function onClearLabel(e) {
             label_filter = "ALL";
             $("#labels").val(label_filter);
             deleteMarkers();
-            apiCallMarkers();
+            apiCalls();
         }
 
         // When a movement action starts, hide markers so they don't show on map
@@ -290,7 +427,7 @@
         function onMoveEnd(e){
             deleteOutOfBoundsMarkers();
             showMarkers();
-            apiCallMarkers()
+            apiCalls();
         }
 
         // Bind Events
