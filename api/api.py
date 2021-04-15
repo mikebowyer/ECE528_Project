@@ -12,6 +12,7 @@ import time
 
 # Internal
 from table_manager.dashcam_table_manager import DashcamTableManager
+from table_manager.events_table_manager import EventTableManager
 import feature.features as feat
 
 
@@ -28,6 +29,8 @@ def share_image(event):
                 Latitude in degrees
             'Longitude': decimal
                 Longitude in degrees
+            'EpochTime': decimal
+                Time since epoch from time.time()
             'ImageBase64': str
                 Image encoded as a base64 string
 
@@ -68,10 +71,10 @@ def share_image(event):
     original_image_bytes = base64.b64decode(image_base64)
     s3_client = boto3.client('s3')
     response = s3_client.put_object(
-        Body=original_image_bytes,
-        Bucket=bucket_name,
-        Key=original_image_name,
-        ACL='public-read')  # enable public read access
+            Body=original_image_bytes,
+            Bucket=bucket_name,
+            Key=original_image_name,
+            ACL='public-read')  # enable public read access
     original_image_url = 'https://{}.s3.amazonaws.com/{}'.format(
         bucket_name,
         original_image_name)
@@ -87,7 +90,7 @@ def share_image(event):
     custom_labels = feat.get_custom_features(bucket_name=bucket_name,
                                              image_name=original_image_name)
     labels = labels + custom_labels
-    
+
     # -- Label image and store
     labeled_image_name = 'labeled_' + base_image_name
     labeled_image_bytes = feat.label_image(
@@ -96,14 +99,14 @@ def share_image(event):
 
     s3_client = boto3.client('s3')
     response = s3_client.put_object(
-        Body=labeled_image_bytes,
-        Bucket=bucket_name,
-        Key=labeled_image_name,
-        ACL='public-read')  # enable public read access
+            Body=labeled_image_bytes,
+            Bucket=bucket_name,
+            Key=labeled_image_name,
+            ACL='public-read')  # enable public read access
     labeled_image_url = 'https://{}.s3.amazonaws.com/{}'.format(
         bucket_name,
         labeled_image_name)
-
+    
     if response['ResponseMetadata']['HTTPStatusCode'] != 200:
         statusCode = 500
         message = 'Unable to upload labeled image to S3'
@@ -114,24 +117,50 @@ def share_image(event):
         label_names.append(label['Name'])
 
     human_readable_time = time.strftime("%Y-%m-%d %H:%M:%S",
-                                        time.gmtime(epoch_time))
+                                        time.gmtime(epoch_time - 4 * 60 * 60))
     dynamo_meta = {'Latitude': lat,
                    'Longitude': lon,
                    'EpochTime': epoch_time,
                    'ImageURL': original_image_url,
                    'LabeledImageURL': labeled_image_url,
-                   'humanReadableTime': human_readable_time - 4 * 60 * 60,  # get in our timezone
+                   'humanReadableTime': human_readable_time,
                    'Labels': label_names}
 
     TableManager = DashcamTableManager("dashcam_images")
-    TableManager.put_new_img(epochTime=dynamo_meta['EpochTime'],
-                             humanReadableTime=dynamo_meta['humanReadableTime'],
-                             lat=dynamo_meta['Latitude'],
-                             long=dynamo_meta['Longitude'],
-                             imgSrc=dynamo_meta['ImageURL'],
-                             labeledImgSrc=dynamo_meta['LabeledImageURL'],
-                             detectedLabels=dynamo_meta['Labels'])
+    new_img = TableManager.put_new_img(epochTime=dynamo_meta['EpochTime'],
+                                     humanReadableTime=dynamo_meta['humanReadableTime'],
+                                     lat=dynamo_meta['Latitude'],
+                                     long=dynamo_meta['Longitude'],
+                                     imgSrc=dynamo_meta['ImageURL'],
+                                     labeledImgSrc=dynamo_meta['LabeledImageURL'],
+                                     detectedLabels=dynamo_meta['Labels'])
 
+    # Check events
+    EventMan = EventTableManager('Events')
+    
+    detected_label_associations = EventMan.check_if_img_matches_any_events(new_img)
+    print("Events this image should be associated with: \n {}".format(detected_label_associations))
+
+    if not detected_label_associations:
+        print("No events could be associated with this image, so creating new event.")
+        supported_events = ['Construction', 'Deer']
+        
+        for event_type in supported_events:
+            if event_type in new_img['info']['detected_labels']:
+                put_success = EventMan.put_new_event(event_type, new_img)
+    else:
+        print("At least one event found associated to this image, making associations.")
+        for detected_label_association in detected_label_associations:
+            for event_to_associate in detected_label_association:
+                event_time = event_to_associate['start_time']
+                event_uid = event_to_associate['event_uid']
+                result = EventMan.update_event_using_new_img(event_time,
+                                                            event_uid,
+                                                            new_image_to_associate=new_img)
+                if not result:
+                    raise Exception("Sorry, had problems associating image to event")
+
+    # Response
     if response['ResponseMetadata']['HTTPStatusCode'] != 200:
         statusCode = 500
         message = 'Unable to upload JSON to S3'
@@ -140,6 +169,64 @@ def share_image(event):
     response = {'statusCode': statusCode,
                 'message': message,
                 'dynamoMeta': json.dumps(dynamo_meta)}
+    return response
+
+def getEvents(event):
+    """
+    Get images from database within a GPS bounding box
+
+    Parameters
+    ----------
+    event : dictionary
+        Contains the following:
+            TL_Lat : decimal
+                Top-left latitude (Degrees) of GPS bounding box
+            TL_Long : decimal
+                Top-left longitude (Degrees) of GPS bounding box
+            BR_Lat : decimal
+                Bottom-right latitude (Degrees) of GPS bounding box
+            BR_Long : decimal
+                Bottom-right longitude (Degrees) of GPS bounding box
+            freshness_limit : string (optional)
+                Specifies how fresh results from this query must be so old data isn't included
+            event_type : string (optional)
+                Filter to only include results which include this event_type in the image
+
+    Returns
+    -------
+    response : dictionary
+        Contains the following:
+            statusCode : integer
+                200 for good, other for bad
+            message : str
+                Received message
+            body : list
+                Contains dictionary items corresponding to each found result 
+    """
+    try:
+        tl_lat = float(event['TL_Lat'])
+        tl_long = float(event['TL_Long'])
+        br_lat = float(event['BR_Lat'])
+        br_long = float(event['BR_Long'])
+        freshness_limit = int(0)
+        event_type = ""
+
+        if 'freshness_limit' in event:
+            if event['freshness_limit'] != "":
+                freshness_limit = int(event['freshness_limit'])
+        if 'event_type' in event:
+            event_type = event['event_type']
+    except:
+        print("ERROR")
+        response = {'statusCode': 400, 'message': 'RecievedMessage: {}'.format(event), 'body': 'Base request'}
+        return response
+
+    table_manager = EventTableManager("Events")
+    results = table_manager.get_events_in_GPS_bounds(tl_lat, tl_long, br_lat, br_long, freshness_limit, event_type)
+
+    response = {'statusCode': 200,
+                'message': 'RecievedMessage: {}'.format(event), 'body': results}
+
     return response
 
 

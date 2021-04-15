@@ -238,4 +238,3 @@ class EventTableManager():
                 eventsToAssociate.append(events)
 
         return eventsToAssociate
-
