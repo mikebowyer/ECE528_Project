@@ -8,8 +8,8 @@ control     "Fetch Image Query Function" as Lambda_Fetch_Function << AWS Lambda 
 database    "Metadata Storage" as AWS_DynamoDB << AWS DynamoDB >>
 database    "Image Storage" as AWS_S3 << AWS S3 >>
 
-Website_User --> Dashcam_Image_Browsing_Website: User scrolls/zooms on map
-Dashcam_Image_Browsing_Website --> Image_Fetch_API: {GPS Bounding Box, Desired Image Features, Freshness}
+Website_User --> Dashcam_Image_Browsing_Website: User changes map view
+Dashcam_Image_Browsing_Website --> Image_Fetch_API: {GPS Bounding Box,\n Desired Image Features,\n Freshness}
 Image_Fetch_API --> Lambda_Fetch_Function: {GPS Bounding Box, Desired Image Features, Freshness}
 Lambda_Fetch_Function --> AWS_DynamoDB: Query Database for images in GPS Bounding box with Desired features and within freshness limits
 AWS_DynamoDB --> Lambda_Fetch_Function: [{Upload Time, Original Image URL, Labeled Image URL, Latitude, Longitude, [Features Detected in Image]}]

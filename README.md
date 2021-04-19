@@ -4,8 +4,8 @@ The repository contains all artifacts related to the project titled "Cloud Based
 # Sequence Diagrams
 ## Image Upload Process
 ![Image Upload Process](/sequence_diagrams/Image_Upload_Process.png)
-## Website Fetch Images Process
-![Website Fetch Images Process](/sequence_diagrams/Website_Fetch_Images_Process.png)
+## Website Fetch Events and Associated Images Process
+![Website Fetch Events and Associated Images Process](/sequence_diagrams/Website_Fetch_Events_And_Associated_Images_Process.png)
 # Contributors
 Michael Bowyer <mbowyer@umich.edu>
 Tristan Steiner <stristan@umich.edu>

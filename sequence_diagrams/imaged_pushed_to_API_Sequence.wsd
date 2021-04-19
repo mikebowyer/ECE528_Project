@@ -10,18 +10,18 @@ control     "Image Feature Detection" as AWS_Rekognition << AWS Rekognition >>
 database    "Image Storage" as AWS_S3 << AWS S3 >>
 database    "Metadata Storage" as AWS_DynamoDB << AWS DynamoDB >>
 
-Dashcam_Owner -> Dashcam_Application: Start Dashcam Upload Application
-Dashcam_Application -> Image_Upload_API: {Image, Latitude, Longitude}
-Dashcam_Owner -> Website: Upload Image Using GUI
-Website -> Image_Upload_API: {Image, Latitude, Longitude}
-Image_Upload_API -> Lambda_Upload_Function: {Image, Latitude, Longitude}
-Lambda_Upload_Function --> AWS_S3: {Image}
-Lambda_Upload_Function <-- AWS_S3: {URL to Image}
-Lambda_Upload_Function --> AWS_Rekognition: {Image}
+Dashcam_Owner -> Dashcam_Application: __**User Interaction:**__\nStart Image Upload
+Dashcam_Application -> Image_Upload_API: __**API Request Parameters:**__\n{Image, Latitude, Longitude}
+Dashcam_Owner -> Website: __**User Interaction:**__\nStart Image Upload
+Website -> Image_Upload_API: __**API Request Parameters:**__\n{Image, Latitude, Longitude}
+Image_Upload_API -> Lambda_Upload_Function: __**API Request Parameters:**__\n{Image, Latitude, Longitude}
+Lambda_Upload_Function --> AWS_S3: __**Image Storage Request:**__\n{Image}
+Lambda_Upload_Function <-- AWS_S3: __**Image Storage Response:**__\n{Image URL}
+Lambda_Upload_Function --> AWS_Rekognition: __**Image Detection Initiation:**__\n{Image}
 AWS_Rekognition --> AWS_Rekognition: Detect Contents of Image
-AWS_Rekognition --> Lambda_Upload_Function: {Bounding Box, Labels}
-Lambda_Upload_Function --> AWS_S3: {Image with bounding box}
-Lambda_Upload_Function <-- AWS_S3: {URL to Image with bounding box}
-Lambda_Upload_Function --> AWS_DynamoDB: {Upload Time, Original Image URL, Labeled Image URL, Latitude, Longitude, [Features Detected in Image]}
+AWS_Rekognition --> Lambda_Upload_Function: __**Image Detection Response:**__\n{Bounding Box, Features Detected in Image}
+Lambda_Upload_Function --> AWS_S3: __**Image Storage Request:**__\n{Image with bounding box}
+Lambda_Upload_Function <-- AWS_S3: __**Image Storage Response:**__\n{Image with bounding box URL}
+Lambda_Upload_Function --> AWS_DynamoDB: __**Database Storage Request:**__\n{Upload Time,\n Original Image URL,\n Labeled Image URL,\n Latitude,\n Longitude,\n [Features Detected in Image]}
 
 @enduml

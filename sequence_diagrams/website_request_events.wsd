@@ -1,0 +1,24 @@
+@startuml
+title Website Fetch Events And Associated Images Process
+
+actor       Website_User
+entity      "Website" as Dashcam_Event_Browsing_Website << AWS Elastic Beanstalk>>
+boundary    "Fetch Events API" as Event_Fetch_API << AWS API Gateway >>
+control     "Fetch Events Query Function" as Lambda_Fetch_Function << AWS Lambda Function >>
+database    "Metadata Storage" as AWS_DynamoDB << AWS DynamoDB >>
+database    "Event Storage" as AWS_S3 << AWS S3 >>
+
+Website_User --> Dashcam_Event_Browsing_Website: __**User Interaction:**__\nUser changes map view
+Dashcam_Event_Browsing_Website --> Event_Fetch_API: __**API Request Parameters:**__\n{GPS Bounding Box,\n Desired Event Type,\n Freshness}
+Event_Fetch_API --> Lambda_Fetch_Function:  __**API Request Parameters:**__\n{GPS Bounding Box,\n Desired Event Type,\n Freshness}
+Lambda_Fetch_Function --> AWS_DynamoDB: __**Database query:**__\nEvents in GPS bounding box\nuploaded within freshness limit\nand matching event type
+AWS_DynamoDB --> Lambda_Fetch_Function: __**List of Events:**__\n[{Event Start Time, Event Type,\n Latitude,Longitude,\n Most recent event update time, [Associated Images]}]
+Lambda_Fetch_Function --> Event_Fetch_API: __**List of Events:**__\n[{Event Start Time, Event Type,\n Latitude,Longitude,\n Most recent event update time, [Associated Images]}]
+Event_Fetch_API --> Dashcam_Event_Browsing_Website: __**List of Events:**__\n[{Event Start Time, Event Type,\n Latitude,Longitude,\n Most recent event update time, [Associated Images]}]
+Dashcam_Event_Browsing_Website --> Dashcam_Event_Browsing_Website: __**Website Display Update:**__\nUpdate map with new event locations
+Website_User --> Dashcam_Event_Browsing_Website: __**User Interaction:**__\n Select event from map
+Dashcam_Event_Browsing_Website --> AWS_S3: __**Image Storage Query:**__\nRequest images\n associated with event
+AWS_S3 --> Dashcam_Event_Browsing_Website: __**Image Storage Result:**__\nReturn images\n associated with event
+Dashcam_Event_Browsing_Website --> Dashcam_Event_Browsing_Website: __**Website Display Update:**__\nDisplay images\n associated with event
+
+@enduml
