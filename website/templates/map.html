@@ -91,6 +91,8 @@
                 accessToken: creds
             }).addTo(map);
         }
+        let oms = new OverlappingMarkerSpiderfier(map, {keepSpiderfied: true});
+        oms.addListener('spiderfy', onSpiderfy)
 
         // If passed some initial markers, show them, otherwise do the API Call
         initMarkers = {{ markers | tojson}};
@@ -147,21 +149,21 @@
             }
         }
 
-                // function to call api and call update markers when done
+        // function to call api and call update markers when done
         async function apiCallEvents() {
             let bnds = getBoundaries();
             let url = '';
+
             if (label_filter != "ALL") {
-                if (label_filter == "Deer" || label_filter == "Construction") { // TODO looks broken
+                if (label_filter.localeCompare("Deer") || label_filter.localeCompare("Construction")) { // TODO looks broken
                     bnds["event_type"] = label_filter;
-                }
-                else {
-                    bnds["event_type"] = "None";
+                    bnds["freshness_limit"] = 100000000;
                 }
             }
             if (time_filter > 0) {
                 bnds["freshness_limit"] = parseInt(time_filter);
             }
+            console.log(bnds)
 
             url = `https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev/get-events-in-gps-box`;
             let ajaxObj = {
@@ -234,6 +236,7 @@
                             var val = [markers[m].info.latitude, markers[m].info.longitude];
                             markerList[m] = L.marker(val, {"riseOnHover": true});
                             markerList[m].addTo(map).on('click', onMarkerClick);
+                            oms.addMarker(markerList[m]);
                             markerList[m].id = m;
                             markerList[m].data = markers[m];
                         }
@@ -261,6 +264,7 @@
                                 if (Object.is(markerList[i], lyr)) {
                                     lyr.remove();
                                     markerList.splice(i, 1);
+                                    oms.removeMarker(lyr);
                                 }
                             }
                         }
@@ -282,6 +286,7 @@
             map.eachLayer(function(lyr){
                 if (lyr instanceof L.Marker) {
                     lyr.remove();
+                    oms.removeMarker(lyr);
                     // Remove from marker list as well
                     for (var i = 0; i < markerList.length; i++) {
                         if (Object.is(markerList[i], lyr)) {
@@ -338,6 +343,13 @@
          *  Event based functions
          *************************************************************************************************************/
         // When a marker is clicked, show data from the database
+        function onSpiderfy(e) {
+            $(".show_data").css("visibility", "hidden");
+            $(".initial_data").css("display", "block");
+            $(".initial_data").css("visibility", "visible");
+        }
+
+        // When a marker is clicked, show data from the database
         function onMarkerClick(e) {
             if (marker_html != "") {
                 $("#image_list").html(marker_html);
@@ -355,14 +367,14 @@
             $("#img1").attr("src", e.target.data.info.image_source);
             $("#lbl_img").attr("src", e.target.data.info.labeled_image_source);
 
-            $(".initial_data").remove()
+            $(".initial_data").css("display", "none");
         }
 
         function onEventClick(e) {
             let src_data = e.target.data;
             $("#data_header").text("Warning: " + src_data.info.event_type + " in area!");
 
-            $(".initial_data").remove()
+            $(".initial_data").css("display", "none");
             $("#uid_id").text(src_data.event_uid);
             $("#lat_id").text(src_data.info.latitude);
             $("#long_id").text(src_data.info.longitude);
