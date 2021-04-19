@@ -55,7 +55,8 @@
         <script type = "text/javascript" >
         // The first parameter are the coordinates of the center of the map
         // The second parameter is the zoom level
-        let map = L.map('map').setView([42.3223, -83.1763], 11); // set to Dearborn
+        // provide a default, but will be overridden by curr location if given permission
+        let map = L.map('map').setView([42.3223, -83.1763], 11);
         let creds = '{{ credentials }}';
         let markerList = [];
         let eventList = [];
@@ -75,6 +76,7 @@
         // {z}, {x} and {y} are placeholders for map tiles
         // {x} and {y} are the x/y of where you are on the map
         // {z} is the zoom level
+
         // Use unregistered if no access key for mapbox
         if (creds == '') {
             layer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -91,6 +93,7 @@
                 accessToken: creds
             }).addTo(map);
         }
+        // spiderfier functionality uses this class
         let oms = new OverlappingMarkerSpiderfier(map, {keepSpiderfied: true});
         oms.addListener('spiderfy', onSpiderfy)
 
@@ -102,6 +105,7 @@
             apiCallMarkers();
         }
 
+        // Add the overlay to the map space
         map.addLayer(layer);
         timeout_var = setTimeout(apiCallMarkers, 60000); // set timeout to call refresh function
         if (navigator.geolocation) {
@@ -110,6 +114,8 @@
         /*************************************************************************************************************
          *  Helper functions
          *************************************************************************************************************/
+        // Show the position on the map from the parameter.
+        // Structure is {coords: {latitude: XXXX, longitude: XXXX }}
         function showPosition(position) {
           let x = position.coords.latitude;
           let y = position.coords.longitude;
@@ -122,6 +128,7 @@
                     if (events[m]) {
                         if (!eventExists(events[m])) {
                             var val = [events[m].info.latitude, events[m].info.longitude];
+                            // draw 500 unit circle in red around region of event
                             var circle = L.circle([val[0], val[1]], {
                                 color: 'red',
                                 fillColor: '#f03',
@@ -138,6 +145,7 @@
             }
         }
 
+        // when the get event api is successful, call this function to update the event locations
         function onEventGetSuccess(response) {
             p = response;
             let events = [];
@@ -176,6 +184,7 @@
             $.ajax(ajaxObj);
         }
 
+        // when the get images api is successful, call this function to update the marker locations
         function onGetImagesSuccess(response) {
             p = response;
             let markers = [];
@@ -187,6 +196,7 @@
             }
 
         }
+
         // function to call api and call update markers when done
         async function apiCallMarkers() {
             let bnds = getBoundaries();
@@ -209,6 +219,7 @@
             $.ajax(ajaxObj);
         }
 
+        // return true if the marker already exists so you don't need to re add it
         function markerExists(m) {
             for (let i = 0; i < markerList.length; i++) {
                 if (markerList[i].data.image_uid == m.image_uid) {
@@ -218,6 +229,7 @@
             return false;
         }
 
+        // return true if the event already exists so you don't need to re add it
         function eventExists(e) {
             for (let i = 0; i < eventList.length; i++) {
                 if (eventList[i].data.event_uid == e.event_uid) {
@@ -305,6 +317,7 @@
             });
         }
 
+        // get the boundaries of the map view
         function getBoundaries() {
             var bounds = map.getBounds();
             sw_lat = Number.parseFloat(bounds.getSouthWest().lat).toFixed(4);
@@ -319,6 +332,7 @@
             }
         }
 
+        // hide the markers when scrolling if you want to enable it
         function hideMarkers() {
             map.eachLayer(function(lyr){
                 if (lyr instanceof L.Marker) {
@@ -327,6 +341,7 @@
             });
         }
 
+        // show the markers if hiding is enabled
         function showMarkers() {
             map.eachLayer(function(lyr){
                 if (lyr instanceof L.Marker) {
@@ -335,6 +350,7 @@
             });
         }
 
+        // reset the timer to refresh the data
         function resetTimeout() {
             clearTimeout(timeout_var);
             timeout_var = setTimeout(apiCallMarkers, 60000);
@@ -370,6 +386,7 @@
             $(".initial_data").css("display", "none");
         }
 
+        // when an event is clicked, update the data
         function onEventClick(e) {
             let src_data = e.target.data;
             $("#data_header").text("Warning: " + src_data.info.event_type + " in area!");
@@ -399,23 +416,27 @@
 
         }
 
+        // call both api calls to update events and markers
         function apiCalls() {
             apiCallEvents();
             apiCallMarkers();
         }
 
+        // when time is filtered
         function onFilterTime(e) {
             time_filter = parseInt($("#hrs").val());
             deleteMarkers();
             apiCalls();
         }
 
+        // when label type is filtered
         function onFilterLabel(e) {
             label_filter = $("#labels").val();
             deleteMarkers();
             apiCalls();
         }
 
+        // when time filter is cleared
         function onClearTime(e) {
             time_filter = -1;
             $("#hrs").val(time_filter);
@@ -423,6 +444,7 @@
             apiCalls();
         }
 
+        // when label filter is cleared
         function onClearLabel(e) {
             label_filter = "ALL";
             $("#labels").val(label_filter);
