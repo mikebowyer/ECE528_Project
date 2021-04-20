@@ -91,3 +91,53 @@ Here is a description of all of the items provided in the result:
 | labeled_image_source | The URL of where the image with added detected feature bounding boxes was stored and can be viewed. |
 | human_readable_time  |                         The time at which the server recieved the image in a human readable format. |
 | detected_labels      |                                                 A list of all identified features within the image. |
+
+
+
+# Event Estimation API
+## Purpose of API
+The purpose of this API is so users can obtain a list of current events that are occuring in the world based on Latitude, Longitude, etc
+## URL and path of API
+https://dy0duracgd.execute-api.us-east-1.amazonaws.com/dev/get-imgs-in-gps-box?TL_Lat=48.3&TL_Long=-83.3&BR_Lat=41.3&BR_Long=-83.2&freshness_limit=60&detected_label=Car
+## API Parameters
+| Parameter Name  |                                Parameter Description                                | Parameter Type | Required Parameter |
+| :-------------- | :---------------------------------------------------------------------------------: | :------------: | -----------------: |
+| TL_Lat          |            Top left corner of bounding boxes Latitude (decimal degrees).            |    float64     |                Yes |
+| TL_Long         |           Top left corner of bounding boxes Longitude (decimal degrees).            |    float64     |                Yes |
+| BR_Lat          |          Bottom right corner of bounding boxes Latitude (decimal degrees).          |    float64     |                Yes |
+| BR_Long         |         Bottom right corner of bounding boxes Longitude (decimal degrees).          |    float64     |                Yes |
+| freshness_limit |     In minutes, how recently an image was uploaded to be returned in the query.     |     int32      |                 No |
+| event_type      | Filter query results of query to only include events which contain this event type. |     string     |                 No |
+## Response Format
+Below is an example response in json format which a sucessful API call will result in. It is possible for the response body to have multiple items within the body indicating that multiple events match the query criteria: 
+```json
+"statusCode": 200,
+"message": "RecievedMessage: {"TL_Lat": "0.0", "TL_Long": "0.0", "BR_Lat": "180.0", "BR_Long": "180.0"}",
+"body": [
+   {
+       "info": {
+           "latitude": 20.2,
+           "longitude": 30.3, 
+           "event_type": "Construction",
+           "event_start_time": 123456123,
+           "last_update_of_event": 123456123,
+           "associated_images":
+            [
+                {"time": 123456789, "uid": "123fwafwa"},
+                {"time": 123456789, "uid": "123fwafwa"}
+            ],
+       }
+   }
+]
+```
+Here is a description of all of the items provided in the result: 
+| Response Item        |                                                         Item Description |
+| :------------------- | -----------------------------------------------------------------------: |
+| statusCode           |                   Response code for if API call was sucessful or failed. |
+| message              |              Contains all values of parameters used in API request call. |
+| Latitude             |                       Estimated event center latitude (decimal degrees). |
+| Longitude            |                      Estimated event center longitude (decimal degrees). |
+| event_type           |                            The type of event which this event refers to. |
+| event_start_time     | The first time an image was uploaded that is associated with this event. |
+| last_update_of_event | The most recent time this even had an image uploaded associated with it. |
+| associated_images    |                         A list of all images associated with this event. |

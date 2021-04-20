@@ -106,3 +106,22 @@ get_imgs_in_gps_box_response = requests.get(url=request_url, params=params).json
 print('Found {} repsonses: '.format(len(get_imgs_in_gps_box_response['body'])))
 for item in get_imgs_in_gps_box_response['body']:
     print('\t{}'.format(item['info']['labeled_image_source']))
+
+# %% 4) GetEvent Test
+# Test name
+print('\n===== ShareImage TEST =====')
+
+params = { #These coordinates have dynamoDB entries in them
+    "TL_Lat": 0.0,
+    "TL_Long": 0.0,
+    "BR_Lat": 180.0,
+    "BR_Long": 180.0,
+    "freshness_limit": 100000000
+}
+
+request_url = stage_url + '/get-events-in-gps-box'
+get_events_in_gps_box_response = requests.get(url=request_url, params=params).json()
+
+# Print results
+body = get_events_in_gps_box_response['body']
+print(body)

@@ -27,6 +27,10 @@ Request Body:
 Query Strings:
 TL_Lat=48.3&TL_Long=-83.3&BR_Lat=41.3&BR_Long=-83.2
 
+3) /get-events-in-gps-box
+Query Strings:
+TL_Lat=-0.001&TL_Long=-0.001&BR_Lat=0.001&BR_Long=0.001
+
 
 *** SAMPLE REQUEST URLS ***
 1) /get-imgs-in-gps-box WITHOUT freshness & detection label

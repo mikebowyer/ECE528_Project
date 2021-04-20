@@ -152,7 +152,7 @@ class DashcamTableManager():
             if imgSrc != None:
                 item['info']['image_source'] = str(imgSrc)
             if detectedLabel != None:
-                item['info']['detected_labels'] = str(detectedLabel)
+                item['info']['detected_label'] = str(detectedLabel)
 
             # Update the item!
             response = self.table.update_item(
@@ -190,8 +190,7 @@ class DashcamTableManager():
         else:
             return response
 
-    def get_imgs_in_GPS_bounds(self, top_left_lat, top_left_long, bottom_right_lat, bottom_right_long, freshness_limit=0,
-                               detected_label=""):
+    def get_imgs_in_GPS_bounds(self, top_left_lat, top_left_long, bottom_right_lat, bottom_right_long):
 
         upper_lat = max(top_left_lat, bottom_right_lat)
         lower_lat = min(top_left_lat, bottom_right_lat)
@@ -200,34 +199,10 @@ class DashcamTableManager():
 
         items = self.scan_table()
 
-        # Get items in GPS bounding Boxes
         itemsInBounds = []
         for item in items:
-            if upper_lat > item['info']['latitude'] and item['info']['latitude'] > lower_lat:
+            if  upper_lat > item['info']['latitude'] and item['info']['latitude'] > lower_lat:
                 if upper_long > item['info']['longitude'] and item['info']['longitude'] > lower_long:
                     itemsInBounds.append(item)
 
-        # Filter out items not uploaded within recent time window
-        itemInBoundsAndFresh = []
-        current_time = int(time.time())
-        if freshness_limit != 0:
-            for item in itemsInBounds:
-                itemCreationTime = int(item['time'])
-                itemAgeinMins = (current_time - itemCreationTime) / 60
-
-                if itemAgeinMins < freshness_limit:
-                    itemInBoundsAndFresh.append(item)
-        else:
-            itemInBoundsAndFresh = itemsInBounds
-
-        # Filter out items without the correct label
-        itemInBoundsAndFreshAndCorrectLabel = []
-        if detected_label != "":
-            for item in itemInBoundsAndFresh:
-                for label in item['info']['detected_labels']:
-                    if detected_label in label:
-                        itemInBoundsAndFreshAndCorrectLabel.append(item)
-        else:
-            itemInBoundsAndFreshAndCorrectLabel = itemInBoundsAndFresh
-
-        return itemInBoundsAndFreshAndCorrectLabel
+        return items
